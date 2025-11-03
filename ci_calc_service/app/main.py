@@ -9,6 +9,7 @@ from fastapi import Body, FastAPI, HTTPException
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Any, Dict, Optional
 from pymongo import MongoClient
+from pathlib import Path
 
 APP_DESCRIPTION = (
     "Service providing GreenDIGIT KPIs. It retrieves location information from "
@@ -16,7 +17,12 @@ APP_DESCRIPTION = (
     "used by the CIM pipeline."
 )
 
-app = FastAPI(title="GreenDIGIT KPI Service", description=APP_DESCRIPTION)
+app = FastAPI(
+    title="GreenDIGIT KPI Service",
+    description=APP_DESCRIPTION,
+    swagger_ui_parameters={"persistAuthorization": True},
+    root_path="/gd-ci-api"
+)
 
 WATTNET_BASE = os.getenv("WATTNET_BASE") or os.getenv("WATTPRINT_BASE", "https://api.wattnet.eu")
 WATTNET_TOKEN = os.getenv("WATTNET_TOKEN") or os.getenv("WATTPRINT_TOKEN")
@@ -25,33 +31,74 @@ RETAIN_MONGO_URI = os.getenv("RETAIN_MONGO_URI")
 RETAIN_DB_NAME   = os.getenv("RETAIN_DB_NAME", "ci-retainment-db")
 RETAIN_COLL      = os.getenv("RETAIN_COLL", "pending_ci")
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def _resolve_optional_path(raw: Optional[str]) -> Optional[str]:
+    if not raw:
+        return None
+    candidate = Path(raw).expanduser()
+    if not candidate.is_absolute():
+        candidate = (REPO_ROOT / candidate).resolve()
+    if candidate.exists():
+        return str(candidate)
+    print(f"[gocdb] warning: path not found: {candidate}", flush=True)
+    return None
+
+
+def _sites_path() -> str:
+    env_path = os.environ.get("SITES_JSON")
+    if env_path:
+        candidate = Path(env_path).expanduser()
+        if not candidate.is_absolute():
+            candidate = (REPO_ROOT / candidate).resolve()
+        return str(candidate)
+    for candidate in (
+        REPO_ROOT / "output/sites_latlngpue.json",
+        REPO_ROOT / "data/sites_latlngpue.json",
+        Path("/data/sites_latlngpue.json"),
+    ):
+        if candidate.exists():
+            return str(candidate)
+    return "/data/sites_latlngpue.json"
+
+
 CNR_SQL_FORWARD_URL = os.getenv("CNR_SQL_FORWARD_URL", "http://sql-cnr-adapter:8033/cnr-sql-service")
 PUE_DEFAULT = os.getenv("PUE_DEFAULT", "1.7")
 
-SITES_PATH = os.environ.get("SITES_JSON", "/data/sites_latlngpue.json")  # volume mount
+SITES_PATH = _sites_path()
 SITES_MAP: dict[str, dict] = {}  # site_name -> {lat, lon, pue}
 
 sess = requests.Session()
 
+DEFAULT_CERT_DIR = REPO_ROOT / ".cert"
+DEFAULT_CERT_PATH = DEFAULT_CERT_DIR / "GDIGIT_Cert.pem"
+DEFAULT_KEY_PATH = DEFAULT_CERT_DIR / "gd_gocdb_private.pem"
+
 GOCDB_BASE = os.getenv("GOCDB_BASE", "https://goc.egi.eu/gocdbpi")
 GOCDB_SCOPE = os.getenv("GOCDB_SCOPE")
 GOCDB_TOKEN = os.getenv("GOCDB_TOKEN") or os.getenv("GOCDB_OAUTH_TOKEN")
-GOCDB_CERT = os.getenv("GOCDB_CERT")
-GOCDB_KEY = os.getenv("GOCDB_KEY")
+GOCDB_CERT = os.getenv("GOCDB_CERT", str(DEFAULT_CERT_PATH))
+GOCDB_KEY = os.getenv("GOCDB_KEY", str(DEFAULT_KEY_PATH))
 GOCDB_TIMEOUT = float(os.getenv("GOCDB_TIMEOUT", "20"))
 GOCDB_CA = os.getenv("GOCDB_CA")
+
+CERT_PATH = _resolve_optional_path(GOCDB_CERT)
+KEY_PATH = _resolve_optional_path(GOCDB_KEY)
+CA_PATH = _resolve_optional_path(GOCDB_CA)
+
 GOCDB_ENDPOINT_TYPE = os.getenv("GOCDB_ENDPOINT", "").strip().lower() or (
-    "private" if (GOCDB_CERT or GOCDB_KEY or GOCDB_TOKEN) else "public"
+    "private" if (CERT_PATH or KEY_PATH or GOCDB_TOKEN) else "public"
 )
 
 goc_sess = requests.Session()
 goc_sess.headers["Accept"] = "application/xml"
 if GOCDB_TOKEN:
     goc_sess.headers["Authorization"] = f"Bearer {GOCDB_TOKEN}"
-if GOCDB_CERT:
-    goc_sess.cert = (GOCDB_CERT, GOCDB_KEY) if GOCDB_KEY else GOCDB_CERT
-if GOCDB_CA:
-    goc_sess.verify = GOCDB_CA
+if CERT_PATH:
+    goc_sess.cert = (CERT_PATH, KEY_PATH) if KEY_PATH else CERT_PATH
+if CA_PATH:
+    goc_sess.verify = CA_PATH
 
 PUE_FALLBACK = 1.7
 
@@ -86,14 +133,24 @@ def _text_or_none(el: Optional[ET.Element], path: str) -> Optional[str]:
     return None
 
 
+def _text_from_candidates(el: Optional[ET.Element], *candidates: str) -> Optional[str]:
+    if el is None:
+        return None
+    for name in candidates:
+        txt = _text_or_none(el, f"./{name}")
+        if txt:
+            return txt
+    return None
+
+
 def _extract_pue_from_extensions(site_el: ET.Element) -> Optional[float]:
     extensions = site_el.find("./EXTENSIONS")
     if extensions is None:
         return None
     for ext in extensions.findall("./EXTENSION"):
-        name = _text_or_none(ext, "./EXTENSION_NAME")
+        name = _text_from_candidates(ext, "EXTENSION_NAME", "KEY")
         if name and name.strip().lower() == "pue":
-            value = _text_or_none(ext, "./EXTENSION_VALUE")
+            value = _text_from_candidates(ext, "EXTENSION_VALUE", "VALUE")
             if value is None:
                 continue
             try:
@@ -101,6 +158,23 @@ def _extract_pue_from_extensions(site_el: ET.Element) -> Optional[float]:
             except (TypeError, ValueError):
                 continue
     return None
+
+
+def _extract_extensions_map(site_el: ET.Element) -> Dict[str, Any]:
+    out: Dict[str, Any] = {}
+    extensions = site_el.find("./EXTENSIONS")
+    if extensions is None:
+        return out
+    for ext in extensions.findall("./EXTENSION"):
+        key = _text_from_candidates(ext, "EXTENSION_NAME", "KEY")
+        if not key:
+            continue
+        value = _text_from_candidates(ext, "EXTENSION_VALUE", "VALUE")
+        if value is None:
+            # opportunistically capture nested KEY/VALUE combos
+            value = _text_or_none(ext, "./VALUE")
+        out[key] = value
+    return out
 
 
 def gocdb_fetch_site(site_name: str) -> Optional[Dict[str, Any]]:
@@ -137,7 +211,37 @@ def gocdb_fetch_site(site_name: str) -> Optional[Dict[str, Any]]:
     lon = float(lon_txt) if lon_txt else None
     country = _text_or_none(site_el, "./COUNTRY") or _text_or_none(site_el, "./COUNTRY_CODE")
     roc = _text_or_none(site_el, "./ROC")
+    extensions_map = _extract_extensions_map(site_el)
     pue = _extract_pue_from_extensions(site_el)
+    if pue is None:
+        raw_pue = extensions_map.get("PUE") or extensions_map.get("pue")
+        if raw_pue is not None:
+            try:
+                pue = float(raw_pue)
+            except (TypeError, ValueError):
+                pue = None
+
+    scopes: list[str] = []
+    scopes_el = site_el.find("./SCOPES")
+    if scopes_el is not None:
+        for scope_el in scopes_el.findall("./SCOPE"):
+            if scope_el.text:
+                scopes.append(scope_el.text.strip())
+
+    site_json: Dict[str, Any] = {
+        "id": site_el.attrib.get("ID"),
+        "primary_key": site_el.attrib.get("PRIMARY_KEY") or _text_or_none(site_el, "./PRIMARY_KEY"),
+        "name": site_el.attrib.get("NAME"),
+        "short_name": _text_or_none(site_el, "./SHORT_NAME"),
+        "official_name": _text_or_none(site_el, "./OFFICIAL_NAME"),
+        "portal_url": _text_or_none(site_el, "./GOCDB_PORTAL_URL"),
+        "home_url": _text_or_none(site_el, "./HOME_URL"),
+        "country": country,
+        "roc": roc,
+        "timezone": _text_or_none(site_el, "./TIMEZONE"),
+        "scopes": scopes,
+        "extensions": extensions_map,
+    }
 
     return {
         "lat": lat,
@@ -145,6 +249,7 @@ def gocdb_fetch_site(site_name: str) -> Optional[Dict[str, Any]]:
         "country": country,
         "roc": roc,
         "pue": pue,
+        "site": site_json,
     }
 
 
