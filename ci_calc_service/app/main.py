@@ -5,7 +5,7 @@ import sys
 import requests
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
-from fastapi import Body, FastAPI, HTTPException, Query
+from fastapi import Body, FastAPI, HTTPException
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Any, Dict, Optional
 from pymongo import MongoClient
@@ -368,7 +368,109 @@ class CIResponse(BaseModel):
     cfp_g: Optional[float] = Field(default=None, description="Calculated carbon footprint in grams, when energy consumption is provided.")
     cfp_kg: Optional[float] = Field(default=None, description="Calculated carbon footprint in kilograms, when energy consumption is provided.")
     valid: bool = Field(..., description="Flag propagated from WattNet indicating data quality.")
-    
+
+
+def _first_schema_example(model: type[BaseModel]) -> Optional[Dict[str, Any]]:
+    config = getattr(model, "model_config", None)
+    if not config:
+        return None
+    extra = config.get("json_schema_extra") if isinstance(config, dict) else None
+    if not extra:
+        return None
+    examples = extra.get("examples")
+    if not examples:
+        return None
+    first = examples[0]
+    if isinstance(first, dict):
+        return first
+    return None
+
+
+PUE_REQUEST_EXAMPLE: Dict[str, Any] = _first_schema_example(PUERequest) or {"site_name": "CNR-Production"}
+PUE_RESPONSE_EXAMPLE: Dict[str, Any] = _first_schema_example(PUEResponse) or {
+    "site_name": "CNR-Production",
+    "location": {
+        "latitude": 45.071,
+        "longitude": 7.652,
+        "country": "IT",
+        "roc": "NGI_IT",
+    },
+    "pue": 1.58,
+    "source": "gocdb+local",
+}
+CI_REQUEST_EXAMPLE: Dict[str, Any] = _first_schema_example(CIRequest) or {
+    "lat": 45.071,
+    "lon": 7.652,
+    "pue": 1.58,
+    "energy_wh": 8500,
+    "time": "2024-05-01T12:00:00Z",
+    "metric_id": "event-123",
+    "wattnet_params": {"granularity": "hour"},
+}
+CI_RESPONSE_EXAMPLE: Dict[str, Any] = _first_schema_example(CIResponse) or {
+    "source": "wattnet",
+    "zone": "IT-NO",
+    "datetime": "2024-05-01T12:05:00Z",
+    "ci_gco2_per_kwh": 320.5,
+    "pue": 1.58,
+    "effective_ci_gco2_per_kwh": 506.39,
+    "cfp_g": 4304.3,
+    "cfp_kg": 4.3043,
+    "valid": True,
+}
+
+PUE_RESPONSE_EXAMPLE_JSON = json.dumps(PUE_RESPONSE_EXAMPLE, indent=2)
+CI_RESPONSE_EXAMPLE_JSON = json.dumps(CI_RESPONSE_EXAMPLE, indent=2)
+
+PUE_REQUEST_CURL_EXAMPLE = (
+    "curl -s -X POST https://mc-a4.lab.uvalight.net/pue "
+    "-H \"Authorization: Bearer $TOKEN\" "
+    "-H \"Content-Type: application/json\" "
+    f"-d '{json.dumps(PUE_REQUEST_EXAMPLE)}'"
+)
+
+CI_REQUEST_CURL_EXAMPLE = (
+    "curl -s -X POST https://mc-a4.lab.uvalight.net/ci "
+    "-H \"Authorization: Bearer $TOKEN\" "
+    "-H \"Content-Type: application/json\" "
+    f"-d '{json.dumps(CI_REQUEST_EXAMPLE)}'"
+)
+
+PUE_ROUTE_DESCRIPTION = (
+    "Looks up the requested site on GOC DB and the local sites mapping to return location "
+    "metadata and an effective PUE.\n\n"
+    "**Notes**\n"
+    "- When neither source provides a PUE, the service default is returned and marked in the `source` field.\n"
+    "- Location fields are populated with the first non-null value across the available sources.\n\n"
+    "**Example**\n"
+    "- Request:\n"
+    "```bash\n"
+    f"{PUE_REQUEST_CURL_EXAMPLE}\n"
+    "```\n"
+    "- Response:\n"
+    "```json\n"
+    f"{PUE_RESPONSE_EXAMPLE_JSON}\n"
+    "```"
+)
+
+CI_ROUTE_DESCRIPTION = (
+    "Queries WattNet for the carbon intensity at the provided coordinates and time window "
+    "and returns the effective carbon intensity using the supplied or default PUE.\n\n"
+    "**Notes**\n"
+    "- The service queries a three-hour window centred on the provided `time` (or current UTC).\n"
+    "- Optional `wattnet_params` entries are forwarded directly to WattNet for advanced querying.\n\n"
+    "**Example**\n"
+    "- Request:\n"
+    "```bash\n"
+    f"{CI_REQUEST_CURL_EXAMPLE}\n"
+    "```\n"
+    "- Response:\n"
+    "```json\n"
+    f"{CI_RESPONSE_EXAMPLE_JSON}\n"
+    "```"
+)
+
+
 class MetricsEnvelope(BaseModel):
     # top-level convenience fields
     site: Optional[str] = None
@@ -402,6 +504,11 @@ def _load_sites_map() -> dict:
                 "lat": float(lat),
                 "lon": float(lon),
                 "pue": _resolve_pue(x.get("pue")),
+                "country": x.get("country"),
+                "roc": x.get("roc"),
+                "certification_status": x.get("certification_status"),
+                "production_infrastructure": x.get("production_infrastructure"),
+                "error": x.get("error"),
             }
     return m
 
@@ -448,19 +555,6 @@ def _reload_sites_map_if_needed(site_name: str) -> Optional[dict]:
     return SITES_MAP.get(site_name)
 
 
-@app.post(
-    "/get-pue",
-    response_model=PUEResponse,
-    summary="Retrieve PUE and location metadata for a site",
-    description=(
-        "Looks up the requested site on GOC DB and the local sites mapping to return location "
-        "metadata and an effective PUE.\n\n"
-        "**Notes**\n"
-        "- When neither source provides a PUE, the service default is returned and marked in the `source` field.\n"
-        "- Location fields are populated with the first non-null value across the available sources."
-    ),
-    response_description="Merged site metadata and resolved PUE values.",
-)
 def _compute_pue_response(req: PUERequest) -> PUEResponse:
     site_name = req.site_name.strip()
     if not site_name:
@@ -520,28 +614,41 @@ def _compute_pue_response(req: PUERequest) -> PUEResponse:
     return PUEResponse(site_name=site_name, location=location, pue=pue, source=source)
 
 
-@app.get(
+@app.post(
     "/pue",
     response_model=PUEResponse,
     summary="Retrieve PUE and location metadata for a site",
-    description=(
-        "Looks up the requested site on GOC DB and the local sites mapping to return location "
-        "metadata and an effective PUE.\n\n"
-        "**Notes**\n"
-        "- When neither source provides a PUE, the service default is returned and marked in the `source` field.\n"
-        "- Location fields are populated with the first non-null value across the available sources."
-    ),
+    description=PUE_ROUTE_DESCRIPTION,
     response_description="Merged site metadata and resolved PUE values.",
+    responses={
+        200: {
+            "description": "Merged site metadata and resolved PUE values.",
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "default": {
+                            "summary": "Successful lookup",
+                            "value": PUE_RESPONSE_EXAMPLE,
+                        }
+                    }
+                }
+            },
+        }
+    },
 )
-def get_pue(
-    site_name: str = Query(
+def post_pue(
+    payload: PUERequest = Body(
         ...,
-        description="Human-readable site identifier present in GOC DB or the local sites map.",
-        examples={"byName": {"summary": "Lookup by known site name", "value": "CNR-Production"}},
+        description="Site lookup payload used to resolve PUE and location metadata.",
+        examples={
+            "default": {
+                "summary": "Lookup by known site name",
+                "value": PUE_REQUEST_EXAMPLE,
+            }
+        },
     ),
 ):
-    req = PUERequest(site_name=site_name)
-    return _compute_pue_response(req)
+    return _compute_pue_response(payload)
 
 
 def _compute_ci_response(req: CIRequest) -> CIResponse:
@@ -574,55 +681,41 @@ def _compute_ci_response(req: CIRequest) -> CIResponse:
     )
 
 
-@app.get(
+@app.post(
     "/ci",
     response_model=CIResponse,
     summary="Compute carbon intensity for a given location",
-    description=(
-        "Queries WattNet for the carbon intensity at the provided coordinates and time window "
-        "and returns the effective carbon intensity using the supplied or default PUE.\n\n"
-        "**Notes**\n"
-        "- The service queries a three-hour window centred on the provided `time` (or current UTC).\n"
-        "- Optional `wattnet_params` entries are forwarded directly to WattNet for advanced querying."
-    ),
+    description=CI_ROUTE_DESCRIPTION,
     response_description="Carbon intensity result as returned by WattNet, with derived effective CI and CFP.",
+    responses={
+        200: {
+            "description": "Carbon intensity result as returned by WattNet, with derived effective CI and CFP.",
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "default": {
+                            "summary": "Sample carbon intensity response",
+                            "value": CI_RESPONSE_EXAMPLE,
+                        }
+                    }
+                }
+            },
+        }
+    },
 )
-def get_ci(
-    lat: float = Query(..., description="Latitude in decimal degrees."),
-    lon: float = Query(..., description="Longitude in decimal degrees."),
-    pue: Optional[float] = Query(None, description="Power Usage Effectiveness to apply. Defaults to 1.7 when omitted."),
-    energy_wh: Optional[float] = Query(None, description="Energy consumed in watt-hours. Used to derive CFP if provided."),
-    time: Optional[str] = Query(None, description="ISO 8601 timestamp (UTC) for the query window, e.g. 2024-01-01T00:00:00Z."),
-    metric_id: Optional[str] = Query(None, description="Optional metric identifier propagated to retainment."),
-    wattnet_params: Optional[str] = Query(
-        None,
-        description="Additional WattNet query parameters as a JSON object string.",
-        examples={"hourly": {"summary": "Hourly granularity", "value": "{\"granularity\": \"hour\"}"}},
+def post_ci(
+    payload: CIRequest = Body(
+        ...,
+        description="Location and optional calculation parameters for the carbon intensity request.",
+        examples={
+            "default": {
+                "summary": "Hourly carbon intensity lookup",
+                "value": CI_REQUEST_EXAMPLE,
+            }
+        },
     ),
 ):
-    ci_kwargs: Dict[str, Any] = {
-        "lat": lat,
-        "lon": lon,
-    }
-    if pue is not None:
-        ci_kwargs["pue"] = pue
-    if energy_wh is not None:
-        ci_kwargs["energy_wh"] = energy_wh
-    if time:
-        try:
-            ci_kwargs["time"] = _cli_parse_time(time)
-        except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
-    if metric_id:
-        ci_kwargs["metric_id"] = metric_id
-    if wattnet_params:
-        try:
-            ci_kwargs["wattnet_params"] = _cli_parse_wattnet_params(wattnet_params)
-        except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-    req = CIRequest(**ci_kwargs)
-    return _compute_ci_response(req)
+    return _compute_ci_response(payload)
 
 @app.post("/ci-valid", response_model=CIResponse)
 def compute_ci_valid(req: CIRequest):
