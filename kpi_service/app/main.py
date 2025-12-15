@@ -240,7 +240,7 @@ def wattnet_headers(aggregate: Optional[bool] = None) -> Dict[str, str]:
         headers["aggregate"] = str(aggregate).lower()
     return headers
 
-def wattnet_fetch(lat: float, lon: float, start: datetime, end: datetime, aggregate: bool = True, extra_params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def wattnet_fetch(lat: float, lon: float, start: datetime, end: datetime, aggregate: bool = False, extra_params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     url = f"{WATTNET_BASE}/v1/footprints"
     params = {
         "lat": lat,
@@ -500,7 +500,7 @@ CI_ROUTE_DESCRIPTION = (
     "- Provide `start` and optional `end` to control the WattNet window. With only `start`, the service queries from one hour before to two hours after that instant to preserve legacy behaviour.\n"
     "- Legacy `time`/`datetime` keys are still accepted as the window anchor when `start`/`end` are omitted.\n"
     "- Optional `wattnet_params` entries are forwarded directly to WattNet for advanced querying.\n"
-    "- The `aggregate` preference is sent in both the query string and headers to match WattNet expectations.\n\n"
+    "- `aggregate` defaults to `false`; set `wattnet_params.aggregate=true` to request aggregated data. The flag is sent in both the query string and headers to match WattNet expectations.\n\n"
     "**Example**\n"
     "- Request:\n"
     "```bash\n"
@@ -715,7 +715,7 @@ def _compute_ci_response(req: CIRequest) -> CIResponse:
     start, end = _resolve_ci_window(req)
     pue_value = _resolve_pue(req.pue)
     try:
-        payload = wattnet_fetch(req.lat, req.lon, start, end, aggregate=True, extra_params=req.wattnet_params)
+        payload = wattnet_fetch(req.lat, req.lon, start, end, aggregate=False, extra_params=req.wattnet_params)
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"WattNet error: {e}")
     ci = float(payload["value"])
@@ -780,7 +780,7 @@ def compute_ci_valid(req: CIRequest):
     start, end = _resolve_ci_window(req)
     pue_value = _resolve_pue(req.pue)
     try:
-        payload = wattnet_fetch(req.lat, req.lon, start, end, aggregate=True, extra_params=req.wattnet_params)
+        payload = wattnet_fetch(req.lat, req.lon, start, end, aggregate=False, extra_params=req.wattnet_params)
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"WattNet error: {e}")
     ci = float(payload["value"])
@@ -883,7 +883,7 @@ def transform_and_forward(payload: MetricsEnvelope = Body(...)):
     start = when - timedelta(hours=1)
     end   = when + timedelta(hours=2)
     try:
-        wp = wattnet_fetch(ci_req.lat, ci_req.lon, start, end, aggregate=True, extra_params=ci_req.wattnet_params)
+        wp = wattnet_fetch(ci_req.lat, ci_req.lon, start, end, aggregate=False, extra_params=ci_req.wattnet_params)
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"WattNet error: {e}")
 
