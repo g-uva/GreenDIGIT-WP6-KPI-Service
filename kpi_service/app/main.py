@@ -242,11 +242,25 @@ def wattnet_fetch(lat: float, lon: float, start: datetime, end: datetime, aggreg
         "footprint_type": "carbon",
         "start": to_iso_z(start),
         "end": to_iso_z(end),
-        "aggregate": str(aggregate).lower(),
+        "aggregate": aggregate,
     }
     if extra_params:
         params.update(extra_params)
-    headers = wattnet_headers(aggregate=aggregate)
+
+    def _coerce_bool(value: Any) -> bool:
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            v = value.strip().lower()
+            if v in {"true", "1", "yes", "y", "on"}:
+                return True
+            if v in {"false", "0", "no", "n", "off"}:
+                return False
+        return bool(value)
+
+    aggregate_flag = _coerce_bool(params.get("aggregate", aggregate))
+    params["aggregate"] = str(aggregate_flag).lower()
+    headers = wattnet_headers(aggregate=aggregate_flag)
     print("[wattnet_fetch] URL:", url, "params:", params, flush=True)
     r = sess.get(url, params=params, headers=headers, timeout=20)
     if not r.ok:
