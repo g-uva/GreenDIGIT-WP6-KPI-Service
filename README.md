@@ -26,7 +26,7 @@ $$
 ## Folder structure
 ```text
 greendigit-cigrid/
-├─ ci_calc_service/
+├─ kpi_service/
 │  ├─ app/
 │  │  ├─ main.py
 │  │  └─ requirements.txt
