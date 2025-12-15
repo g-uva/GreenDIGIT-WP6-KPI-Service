@@ -423,14 +423,14 @@ PUE_RESPONSE_EXAMPLE_JSON = json.dumps(PUE_RESPONSE_EXAMPLE, indent=2)
 CI_RESPONSE_EXAMPLE_JSON = json.dumps(CI_RESPONSE_EXAMPLE, indent=2)
 
 PUE_REQUEST_CURL_EXAMPLE = (
-    "curl -s -X POST https://mc-a4.lab.uvalight.net/pue "
+    "curl -s -X POST https://greendigit-cim.szatki.hu/gd-ci-api/pue "
     "-H \"Authorization: Bearer $TOKEN\" "
     "-H \"Content-Type: application/json\" "
     f"-d '{json.dumps(PUE_REQUEST_EXAMPLE)}'"
 )
 
 CI_REQUEST_CURL_EXAMPLE = (
-    "curl -s -X POST https://mc-a4.lab.uvalight.net/ci "
+    "curl -s -X POST https://greendigit-cim.szatki.hu/gd-ci-api/ci "
     "-H \"Authorization: Bearer $TOKEN\" "
     "-H \"Content-Type: application/json\" "
     f"-d '{json.dumps(CI_REQUEST_EXAMPLE)}'"
