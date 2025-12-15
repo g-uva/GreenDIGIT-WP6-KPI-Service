@@ -6,7 +6,7 @@ import requests
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 from fastapi import Body, FastAPI, HTTPException
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import AliasChoices, BaseModel, Field, ConfigDict
 from typing import Any, Dict, Optional
 from pymongo import MongoClient
 
@@ -225,6 +225,12 @@ def to_iso_z(dt: datetime) -> str:
     dt = dt.astimezone(timezone.utc).replace(microsecond=0)
     return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
 
+def _ensure_utc(dt: datetime) -> datetime:
+    """Normalise naive datetimes to UTC and strip microseconds."""
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc).replace(microsecond=0)
+
 def wattnet_headers(aggregate: Optional[bool] = None) -> Dict[str, str]:
     if not WATTNET_TOKEN:
         raise RuntimeError("WATTNET_TOKEN not set")
@@ -341,7 +347,8 @@ class CIRequest(BaseModel):
                     "lon": 7.652,
                     "pue": 1.58,
                     "energy_wh": 8500,
-                    "time": "2024-05-01T12:00:00Z",
+                    "start": "2024-05-01T10:30:00Z",
+                    "end": "2024-05-01T13:30:00Z",
                     "metric_id": "event-123",
                     "wattnet_params": {"granularity": "hour"},
                 }
@@ -353,7 +360,21 @@ class CIRequest(BaseModel):
     lon: float = Field(..., description="Longitude in decimal degrees.")
     pue: Optional[float] = Field(default_factory=_default_pue, description="Override for PUE; defaults to service-wide configuration when omitted.")
     energy_wh: Optional[float] = Field(default=None, description="Energy consumption for the window in watt-hours, used to derive CFP metrics.")
-    time: Optional[datetime] = Field(default=None, description="ISO 8601 timestamp that anchors the WattNet query window. Defaults to current UTC.")
+    start: Optional[datetime] = Field(
+        default=None,
+        validation_alias=AliasChoices("start", "datetime"),
+        description="Window start (UTC). Required when providing an explicit end. When provided alone, the service queries a three-hour window around this time.",
+    )
+    end: Optional[datetime] = Field(
+        default=None,
+        description="Window end (UTC). If omitted while start is present, defaults to start-1h to start+2h to preserve the historical behaviour.",
+    )
+    time: Optional[datetime] = Field(
+        default=None,
+        validation_alias=AliasChoices("time"),
+        description="Deprecated alias for the window anchor when start/end are not supplied.",
+        deprecated=True,
+    )
     metric_id: Optional[str] = Field(default=None, description="Optional identifier that is forwarded to the retainment store for traceability.")
     wattnet_params: Optional[Dict[str, Any]] = Field(default=None, description="Additional WattNet API parameters that should be forwarded as-is.")
 
@@ -421,7 +442,8 @@ CI_REQUEST_EXAMPLE: Dict[str, Any] = _first_schema_example(CIRequest) or {
     "lon": 7.652,
     "pue": 1.58,
     "energy_wh": 8500,
-    "time": "2024-05-01T12:00:00Z",
+    "start": "2024-05-01T10:30:00Z",
+    "end": "2024-05-01T13:30:00Z",
     "metric_id": "event-123",
     "wattnet_params": {"granularity": "hour"},
 }
@@ -475,7 +497,8 @@ CI_ROUTE_DESCRIPTION = (
     "Queries WattNet for the carbon intensity at the provided coordinates and time window "
     "and returns the effective carbon intensity using the supplied or default PUE.\n\n"
     "**Notes**\n"
-    "- The service queries a three-hour window centred on the provided `time` (or current UTC).\n"
+    "- Provide `start` and optional `end` to control the WattNet window. With only `start`, the service queries from one hour before to two hours after that instant to preserve legacy behaviour.\n"
+    "- Legacy `time`/`datetime` keys are still accepted as the window anchor when `start`/`end` are omitted.\n"
     "- Optional `wattnet_params` entries are forwarded directly to WattNet for advanced querying.\n"
     "- The `aggregate` preference is sent in both the query string and headers to match WattNet expectations.\n\n"
     "**Example**\n"
@@ -669,11 +692,27 @@ def post_pue(
 ):
     return _compute_pue_response(payload)
 
+def _resolve_ci_window(req: CIRequest) -> tuple[datetime, datetime]:
+    """Derive WattNet start/end based on provided inputs while keeping legacy behaviour."""
+    if req.end is not None and req.start is None:
+        raise HTTPException(status_code=400, detail="start is required when end is provided")
+
+    if req.start and req.end:
+        start = _ensure_utc(req.start)
+        end   = _ensure_utc(req.end)
+    else:
+        anchor = req.start or req.time or datetime.now(timezone.utc)
+        anchor = _ensure_utc(anchor)
+        start = anchor - timedelta(hours=1)
+        end   = anchor + timedelta(hours=2)
+
+    if end <= start:
+        raise HTTPException(status_code=400, detail="end must be after start")
+    return (start, end)
+
 
 def _compute_ci_response(req: CIRequest) -> CIResponse:
-    when  = req.time or datetime.now(timezone.utc)
-    start = when - timedelta(hours=1)
-    end   = when + timedelta(hours=2)
+    start, end = _resolve_ci_window(req)
     pue_value = _resolve_pue(req.pue)
     try:
         payload = wattnet_fetch(req.lat, req.lon, start, end, aggregate=True, extra_params=req.wattnet_params)
@@ -738,9 +777,7 @@ def post_ci(
 
 @app.post("/ci-valid", response_model=CIResponse)
 def compute_ci_valid(req: CIRequest):
-    when  = req.time or datetime.now(timezone.utc)
-    start = when - timedelta(hours=1)
-    end   = when + timedelta(hours=2)
+    start, end = _resolve_ci_window(req)
     pue_value = _resolve_pue(req.pue)
     try:
         payload = wattnet_fetch(req.lat, req.lon, start, end, aggregate=True, extra_params=req.wattnet_params)
@@ -940,6 +977,16 @@ def _cli_get_ci(args: argparse.Namespace) -> None:
         ci_kwargs["pue"] = args.pue
     if args.energy_wh is not None:
         ci_kwargs["energy_wh"] = args.energy_wh
+    if args.start:
+        try:
+            ci_kwargs["start"] = _cli_parse_time(args.start)
+        except ValueError as exc:
+            _cli_exit_with_unexpected_error(exc)
+    if args.end:
+        try:
+            ci_kwargs["end"] = _cli_parse_time(args.end)
+        except ValueError as exc:
+            _cli_exit_with_unexpected_error(exc)
     if args.time:
         try:
             ci_kwargs["time"] = _cli_parse_time(args.time)
@@ -988,8 +1035,16 @@ def main_cli(argv: Optional[list[str]] = None) -> None:
         help="Energy consumed in watt-hours. Used to derive CFP if provided.",
     )
     ci_parser.add_argument(
+        "--start",
+        help="Start of the WattNet window (UTC, ISO 8601). When provided without end, a 3-hour window is derived.",
+    )
+    ci_parser.add_argument(
+        "--end",
+        help="End of the WattNet window (UTC, ISO 8601). Requires --start.",
+    )
+    ci_parser.add_argument(
         "--time",
-        help="ISO 8601 timestamp (UTC) for the query window, for example 2024-01-01T00:00:00Z.",
+        help="(Deprecated) ISO 8601 timestamp (UTC) used as the anchor for the derived query window.",
     )
     ci_parser.add_argument("--metric-id", help="Optional metric identifier propagated to retainment.")
     ci_parser.add_argument(

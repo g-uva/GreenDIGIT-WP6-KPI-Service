@@ -1,10 +1,11 @@
 #!/bin/bash
 set -e
 # Build the image (only needed if you haven’t pushed/pulled it already)
-docker build -t goncaloferreirauva/gd-ci-service -f ./kpi_service/Dockerfile ./kpi_service
+docker build -t goncaloferreirauva/gd-wp6-kpi-service -f ./kpi_service/Dockerfile ./kpi_service
 # Run the container
-docker run --rm -t -p 8011:8011 -d \
+docker run --rm -t -p 8111:8011 -d \
   --env AUTH_VERIFY_URL=https://mc-a4.lab.uvalight.net/gd-cim-api/verify_token \
+  --env WATTNET_TOKEN="eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJubkxEVEtJVkJBN3o5N3Zrbi1RWE5zQXFwSUNVQlQtam5fZ25mX2Z4TWdZIn0.eyJleHAiOjE3NjU4Mzk2NjgsImlhdCI6MTc2NTc1MzI2OCwianRpIjoidHJydGNjOjkyMDM1NTM5LWRhZTctNGViMi1jNTk1LTEzZDc0MzhiZDAzZiIsImlzcyI6Imh0dHBzOi8vYXV0aC53YXR0bmV0LmV1L3JlYWxtcy93YXR0bmV0IiwiYXVkIjpbIm9hdXRoMi1wcm94eSIsImFjY291bnQiXSwic3ViIjoiOTQ0NWUzODYtOGQzOS00ZDYxLTlmYzctZWEwMmIzNGY0MTEwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoib2F1dGgyLXByb3h5IiwiYWNyIjoiMSIsImFsbG93ZWQtb3JpZ2lucyI6WyJodHRwczovL2FwaS53YXR0bmV0LmV1Il0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJkZWZhdWx0LXJvbGVzLXdhdHRwcmludCIsIm9mZmxpbmVfYWNjZXNzIiwidW1hX2F1dGhvcml6YXRpb24iXX0sInJlc291cmNlX2FjY2VzcyI6eyJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiY2xpZW50SG9zdCI6IjE3Mi4xNi4zNS4xMjEiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJzZXJ2aWNlLWFjY291bnQtb2F1dGgyLXByb3h5IiwiY2xpZW50QWRkcmVzcyI6IjE3Mi4xNi4zNS4xMjEiLCJjbGllbnRfaWQiOiJvYXV0aDItcHJveHkifQ.XXQzroFs06Yt63nfYoEpeIblvUFfc1rqMW065uz1Y9xR--xQztJ27dBuMNd5qoo8ppqsKwdiff0cdgvRv2rsaGeMTFxkaKgTiuWt98Fw98uchmPh9_N9N1l3mdESc3VZlEyw1c3xc_BX_eafNUknRHKUbWAmqqKitsca8bNeJDKkioH7_yh2LgYHdCp8fC6zD2Kf9ufR5yc1gAozHYZ2TybkSvVjLTlh2blDjoOSHVVNbqcFOzzB2ceLA585HQzCxlEV8vCpdWHdUwecY6v6nNoC5jiG-EaCDzx0qaJCfTmPrQkU10bKMFgrhAlIs1NWJJdkJrg-0k1ReY_F2dhx1w" \
   --env-file .env \
-  goncaloferreirauva/gd-ci-service \
+  goncaloferreirauva/gd-wp6-kpi-service \
   uvicorn main:app --host 0.0.0.0 --port 8011

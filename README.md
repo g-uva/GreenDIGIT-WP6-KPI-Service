@@ -72,14 +72,15 @@ The resulting file shape (used by this CI service via `SITES_JSON`):
 {
   "lat": 52.0,
   "lon": 5.0,
-  "time": "2025-09-04T12:00:00Z",
+  "start": "2025-09-04T12:00:00Z",
+  "end": "2025-09-04T15:00:00Z",
   "pue": 1.4
 }
 ```
 
 **Curl**
 ```bash
-curl -s -X POST http://localhost:8011/ci   -H "Authorization: Bearer $TOKEN"   -H "Content-Type: application/json"   -d '{"lat":52.0,"lon":5.0,"time":"2025-09-04T12:00:00Z","pue":1.4}'
+curl -s -X POST http://localhost:8111/ci   -H "Authorization: Bearer $TOKEN"   -H "Content-Type: application/json"   -d '{"lat":52.0,"lon":5.0,"start":"2025-09-04T12:00:00Z","end":"2025-09-04T15:00:00Z","pue":1.4}'
 ```
 
 ### `/rank-sites` — order sites by best Effective CI at a start time
@@ -93,7 +94,7 @@ curl -s -X POST http://localhost:8011/ci   -H "Authorization: Bearer $TOKEN"   -
 
 **Curl**
 ```bash
-curl -s -X POST http://localhost:8011/rank-sites   -H "Authorization: Bearer $TOKEN"   -H "Content-Type: application/json"   -d '{"start_time":"2025-09-04T12:00:00Z"}'
+curl -s -X POST http://localhost:8111/rank-sites   -H "Authorization: Bearer $TOKEN"   -H "Content-Type: application/json"   -d '{"start_time":"2025-09-04T12:00:00Z"}'
 ```
 
 ### Auth
