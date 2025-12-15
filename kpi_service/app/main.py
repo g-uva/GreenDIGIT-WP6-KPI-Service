@@ -225,10 +225,14 @@ def to_iso_z(dt: datetime) -> str:
     dt = dt.astimezone(timezone.utc).replace(microsecond=0)
     return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-def wattnet_headers() -> Dict[str, str]:
+def wattnet_headers(aggregate: Optional[bool] = None) -> Dict[str, str]:
     if not WATTNET_TOKEN:
         raise RuntimeError("WATTNET_TOKEN not set")
-    return {"Accept": "application/json", "Authorization": f"Bearer {WATTNET_TOKEN}"}
+    headers = {"Accept": "application/json", "Authorization": f"Bearer {WATTNET_TOKEN}"}
+    if aggregate is not None:
+        # WattNet also accepts the aggregate hint in headers; keep both header and query for compatibility.
+        headers["aggregate"] = str(aggregate).lower()
+    return headers
 
 def wattnet_fetch(lat: float, lon: float, start: datetime, end: datetime, aggregate: bool = True, extra_params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     url = f"{WATTNET_BASE}/v1/footprints"
@@ -242,7 +246,7 @@ def wattnet_fetch(lat: float, lon: float, start: datetime, end: datetime, aggreg
     }
     if extra_params:
         params.update(extra_params)
-    headers = wattnet_headers()
+    headers = wattnet_headers(aggregate=aggregate)
     print("[wattnet_fetch] URL:", url, "params:", params, flush=True)
     r = sess.get(url, params=params, headers=headers, timeout=20)
     if not r.ok:
@@ -458,7 +462,8 @@ CI_ROUTE_DESCRIPTION = (
     "and returns the effective carbon intensity using the supplied or default PUE.\n\n"
     "**Notes**\n"
     "- The service queries a three-hour window centred on the provided `time` (or current UTC).\n"
-    "- Optional `wattnet_params` entries are forwarded directly to WattNet for advanced querying.\n\n"
+    "- Optional `wattnet_params` entries are forwarded directly to WattNet for advanced querying.\n"
+    "- The `aggregate` preference is sent in both the query string and headers to match WattNet expectations.\n\n"
     "**Example**\n"
     "- Request:\n"
     "```bash\n"
