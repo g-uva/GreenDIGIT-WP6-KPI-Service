@@ -5,7 +5,9 @@ import sys
 import requests
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
-from fastapi import Body, FastAPI, HTTPException
+from fastapi import Body, FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from pydantic import AliasChoices, BaseModel, Field, ConfigDict
 from typing import Any, Dict, Optional
 from pymongo import MongoClient
@@ -31,7 +33,7 @@ RETAIN_MONGO_URI = os.getenv("RETAIN_MONGO_URI")
 RETAIN_DB_NAME   = os.getenv("RETAIN_DB_NAME", "ci-retainment-db")
 RETAIN_COLL      = os.getenv("RETAIN_COLL", "pending_ci")
 
-CNR_SQL_FORWARD_URL = os.getenv("CNR_SQL_FORWARD_URL", "http://sql-cnr-adapter:8033/cnr-sql-service")
+CNR_SQL_FORWARD_URL = os.getenv("CNR_SQL_FORWARD_URL", "http://sql-adapter:8033/cnr-sql-service")
 PUE_DEFAULT = os.getenv("PUE_DEFAULT", "1.7")
 
 SITES_PATH = os.environ.get("SITES_JSON", "/data/sites_latlngpue.json")
@@ -267,7 +269,7 @@ def wattnet_fetch(lat: float, lon: float, start: datetime, end: datetime, aggreg
     r.raise_for_status()
     data = r.json()
     if isinstance(data, list):
-        if not data:
+        if not data or len(data) == 0:
             raise HTTPException(status_code=502, detail="WattNet returned empty list")
         return data[0]
     return data
@@ -374,6 +376,24 @@ def _reload_sites_map_if_needed(site_name: str) -> Optional[dict]:
         return None
     return SITES_MAP.get(site_name)
 
+@app.exception_handler(RequestValidationError)
+async def debug_validation_exception_handler(request: Request, exc: RequestValidationError):
+    # 1. Read the raw body that failed validation
+    body = await request.body()
+    body_str = body.decode("utf-8")
+    
+    # 2. Print it to the Docker logs
+    print(f"\n[DEBUG] --- 422 VALIDATION ERROR ---", flush=True)
+    print(f"[DEBUG] Incoming Payload:\n{body_str}", flush=True)
+    print(f"[DEBUG] Validation Details:\n{exc.errors()}", flush=True)
+    print(f"[DEBUG] ----------------------------\n", flush=True)
+
+    # 3. Return the standard response so the client knows it failed
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors(), "body_received": body_str},
+    )
+
 # --- Endpoints ---
 
 @app.post("/pue", response_model=PUEResponse)
@@ -437,9 +457,12 @@ def _compute_ci_response(req: CIRequest) -> CIResponse:
     
     try:
         payload = wattnet_fetch(req.lat, req.lon, start, end, extra_params=req.wattnet_params)
+        if "value" not in payload or not isinstance(payload["value"], (int, float)):
+             raise HTTPException(status_code=502, detail="No numeric 'value' field found in WattNet response.")
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"WattNet error: {e}")
 
+    
     ci = float(payload["value"])
     eff_ci = ci * pue_value # Effective Carbon Intensity = CI * PUE
     
@@ -545,7 +568,7 @@ def transform_and_forward(payload: MetricsEnvelope = Body(...)):
     
     try:
         wp = wattnet_fetch(payload.lat, payload.lon, ci_start, ci_end)
-        ci_g = float(wp["value"])
+        ci_g = float(wp.get("value", 0.0))
     except Exception as e:
         print(f"[ci] Failed to fetch CI: {e}", flush=True)
         ci_g = 0.0 # Default fallback or raise error? Usually better to fail safely for pipeline
@@ -571,6 +594,8 @@ def transform_and_forward(payload: MetricsEnvelope = Body(...)):
         print(f"[forward] Forwarding metric for {site_name}. CFP={cfp_g}g", flush=True)
         r = sess.post(CNR_SQL_FORWARD_URL, json=payload.model_dump(), timeout=20)
         r.raise_for_status()
+
+        print(f"[forward] Success. Metric accepted by SQL Adapter.", flush=True)
     except Exception as e:
         # Log but don't crash the caller, or raise 502 depending on pipeline strictness
         print(f"[forward] Error: {e}", flush=True)
