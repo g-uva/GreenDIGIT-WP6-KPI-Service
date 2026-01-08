@@ -225,15 +225,32 @@ def _ensure_utc(dt: datetime) -> datetime:
         dt = dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc).replace(microsecond=0)
 
-def wattnet_headers(aggregate: Optional[bool] = None) -> Dict[str, str]:
-    if not WATTNET_TOKEN:
+def _parse_dt_param(raw: Optional[str], field: str) -> Optional[datetime]:
+    if not raw:
+        return None
+    try:
+        return datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=f"Invalid {field} datetime format: {raw}") from exc
+
+def _clean_bearer_token(raw: Optional[str]) -> Optional[str]:
+    if not raw:
+        return None
+    token = raw.strip()
+    if token.lower().startswith("bearer "):
+        token = token.split(" ", 1)[1].strip()
+    return token or None
+
+def wattnet_headers(aggregate: Optional[bool] = None, token: Optional[str] = None) -> Dict[str, str]:
+    auth_token = _clean_bearer_token(token) or _clean_bearer_token(WATTNET_TOKEN)
+    if not auth_token:
         raise RuntimeError("WATTNET_TOKEN not set")
-    headers = {"Accept": "application/json", "Authorization": f"Bearer {WATTNET_TOKEN}"}
+    headers = {"Accept": "application/json", "Authorization": f"Bearer {auth_token}"}
     if aggregate is not None:
         headers["aggregate"] = str(aggregate).lower()
     return headers
 
-def wattnet_fetch(lat: float, lon: float, start: datetime, end: datetime, aggregate: bool = False, extra_params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def wattnet_fetch(lat: float, lon: float, start: datetime, end: datetime, aggregate: bool = False, extra_params: Optional[Dict[str, Any]] = None, token: Optional[str] = None) -> Dict[str, Any]:
     url = f"{WATTNET_BASE}/v1/footprints"
     params = {
         "lat": lat,
@@ -259,9 +276,9 @@ def wattnet_fetch(lat: float, lon: float, start: datetime, end: datetime, aggreg
 
     aggregate_flag = _coerce_bool(params.get("aggregate", aggregate))
     params["aggregate"] = str(aggregate_flag).lower()
-    headers = wattnet_headers(aggregate=aggregate_flag)
+    headers = wattnet_headers(aggregate=aggregate_flag, token=token)
     
-    print(f"[wattnet_fetch] Requesting CI for lat={lat} lon={lon} window={start} to {end}", flush=True)
+    print(f"[wattnet_fetch] Requesting CI for lat={lat} lon={lon} window={start} to {end} params={params}", flush=True)
     
     r = sess.get(url, params=params, headers=headers, timeout=20)
     if not r.ok:
@@ -442,8 +459,32 @@ def _compute_pue_response(req: PUERequest) -> PUEResponse:
     )
 
 @app.post("/ci", response_model=CIResponse)
-def post_ci(payload: CIRequest):
-    return _compute_ci_response(payload)
+def post_ci(payload: CIRequest, request: Request):
+    # Allow query parameters to fill missing fields (mirrors WattNet-style calls)
+    q = request.query_params
+    qs_start = _parse_dt_param(q.get("start"), "start")
+    qs_end = _parse_dt_param(q.get("end"), "end")
+    qs_time = _parse_dt_param(q.get("time"), "time")
+    if payload.start is None and qs_start is not None:
+        payload.start = qs_start
+    if payload.end is None and qs_end is not None:
+        payload.end = qs_end
+    if payload.time is None and qs_time is not None:
+        payload.time = qs_time
+
+    merged_params: Dict[str, Any] = {}
+    if payload.wattnet_params:
+        merged_params.update(payload.wattnet_params)
+
+    agg_header = request.headers.get("aggregate")
+    if agg_header is not None and "aggregate" not in merged_params:
+        merged_params["aggregate"] = agg_header
+    agg_query = q.get("aggregate")
+    if agg_query is not None and "aggregate" not in merged_params:
+        merged_params["aggregate"] = agg_query
+
+    auth_token = _clean_bearer_token(request.headers.get("authorization"))
+    return _compute_ci_response(payload, merged_params or None, auth_token)
 
 def _resolve_ci_window(req: CIRequest) -> tuple[datetime, datetime]:
     if req.start and req.end:
@@ -451,12 +492,20 @@ def _resolve_ci_window(req: CIRequest) -> tuple[datetime, datetime]:
     anchor = _ensure_utc(req.start or req.time or datetime.now(timezone.utc))
     return anchor - timedelta(hours=1), anchor + timedelta(hours=2)
 
-def _compute_ci_response(req: CIRequest) -> CIResponse:
+def _compute_ci_response(req: CIRequest, wattnet_params: Optional[Dict[str, Any]] = None, token: Optional[str] = None) -> CIResponse:
+    merged_params: Dict[str, Any] = {}
+    if req.wattnet_params:
+        merged_params.update(req.wattnet_params)
+    if wattnet_params:
+        merged_params.update(wattnet_params)
+
+    print("[params]", merged_params, flush=True)
     start, end = _resolve_ci_window(req)
     pue_value = _resolve_pue(req.pue)
+    print(f"[ci] window {start} -> {end}", flush=True)
     
     try:
-        payload = wattnet_fetch(req.lat, req.lon, start, end, extra_params=req.wattnet_params)
+        payload = wattnet_fetch(req.lat, req.lon, start, end, extra_params=merged_params or None, token=token)
         if "value" not in payload or not isinstance(payload["value"], (int, float)):
              raise HTTPException(status_code=502, detail="No numeric 'value' field found in WattNet response.")
     except Exception as e:
