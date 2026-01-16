@@ -12,6 +12,8 @@ from pydantic import AliasChoices, BaseModel, Field, ConfigDict
 from typing import Any, Dict, Optional
 from pymongo import MongoClient
 
+# Volume Version
+
 APP_DESCRIPTION = (
     "Service providing GreenDIGIT KPIs. It retrieves location information from "
     "GOC DB, queries WattNet for carbon intensity, and exposes helper endpoints "
@@ -28,6 +30,7 @@ app = FastAPI(
 # --- Configuration & Environment ---
 WATTNET_BASE = os.getenv("WATTNET_BASE") or os.getenv("WATTPRINT_BASE", "https://api.wattnet.eu")
 WATTNET_TOKEN = os.getenv("WATTNET_TOKEN") or os.getenv("WATTPRINT_TOKEN")
+AUTH_VERIFY_URL = os.getenv("AUTH_VERIFY_URL", "https://mc-a4.lab.uvalight.net/gd-cim-api/verify_token")
 
 RETAIN_MONGO_URI = os.getenv("RETAIN_MONGO_URI")
 RETAIN_DB_NAME   = os.getenv("RETAIN_DB_NAME", "ci-retainment-db")
@@ -241,8 +244,28 @@ def _clean_bearer_token(raw: Optional[str]) -> Optional[str]:
         token = token.split(" ", 1)[1].strip()
     return token or None
 
-def wattnet_headers(aggregate: Optional[bool] = None, token: Optional[str] = None) -> Dict[str, str]:
-    auth_token = _clean_bearer_token(token) or _clean_bearer_token(WATTNET_TOKEN)
+def _verify_request_token(raw_auth_header: Optional[str]) -> None:
+    """Verify caller JWT against the Auth server."""
+    if not raw_auth_header:
+        raise HTTPException(status_code=401, detail="Authorization header missing")
+    if not AUTH_VERIFY_URL:
+        raise HTTPException(status_code=500, detail="AUTH_VERIFY_URL not configured")
+    try:
+        resp = requests.get(AUTH_VERIFY_URL, headers={"Authorization": raw_auth_header}, timeout=10)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Auth verification failed: {exc}") from exc
+    if resp.status_code != 200:
+        body_preview = resp.text[:300] if resp.text else ""
+        print(f"[auth] verify failed status={resp.status_code} body={body_preview}", flush=True)
+        # print(f"[wattnet_token] {raw_auth_header["Authorization"]}")
+        raise HTTPException(status_code=401, detail="Invalid token")
+    else:
+        print(f"[auth] AuthServer verification status is: {resp.status_code}", flush=True)
+
+def wattnet_headers(aggregate: Optional[bool] = None) -> Dict[str, str]:
+    auth_token = _clean_bearer_token(WATTNET_TOKEN)
+    fp = f"{auth_token[:6]}...{auth_token[-6:]}" if auth_token else "<none>"
+    print(f"[wattnet] using token {fp}", flush=True)
     if not auth_token:
         raise RuntimeError("WATTNET_TOKEN not set")
     headers = {"Accept": "application/json", "Authorization": f"Bearer {auth_token}"}
@@ -250,7 +273,7 @@ def wattnet_headers(aggregate: Optional[bool] = None, token: Optional[str] = Non
         headers["aggregate"] = str(aggregate).lower()
     return headers
 
-def wattnet_fetch(lat: float, lon: float, start: datetime, end: datetime, aggregate: bool = False, extra_params: Optional[Dict[str, Any]] = None, token: Optional[str] = None) -> Dict[str, Any]:
+def wattnet_fetch(lat: float, lon: float, start: datetime, end: datetime, aggregate: bool = False, extra_params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     url = f"{WATTNET_BASE}/v1/footprints"
     params = {
         "lat": lat,
@@ -276,7 +299,14 @@ def wattnet_fetch(lat: float, lon: float, start: datetime, end: datetime, aggreg
 
     aggregate_flag = _coerce_bool(params.get("aggregate", aggregate))
     params["aggregate"] = str(aggregate_flag).lower()
-    headers = wattnet_headers(aggregate=aggregate_flag, token=token)
+    headers = wattnet_headers(aggregate=aggregate_flag)
+    auth_preview = headers.get("Authorization", "<missing>")
+    if isinstance(auth_preview, str) and auth_preview.lower().startswith("bearer "):
+        raw = auth_preview.split(" ", 1)[1]
+        masked = f"{raw[:6]}...{raw[-6:]}" if len(raw) > 12 else raw
+        auth_preview = f"Bearer {masked}"
+    debug_headers = {**headers, "Authorization": auth_preview}
+    print(f"[wattnet_fetch] headers={debug_headers}", flush=True)
     
     print(f"[wattnet_fetch] Requesting CI for lat={lat} lon={lon} window={start} to {end} params={params}", flush=True)
     
@@ -284,7 +314,12 @@ def wattnet_fetch(lat: float, lon: float, start: datetime, end: datetime, aggreg
     if not r.ok:
         print("[wattnet_fetch] status:", r.status_code, "body:", r.text[:300], flush=True)
     r.raise_for_status()
-    data = r.json()
+    try:
+        data = r.json()
+    except json.JSONDecodeError as exc:
+        body_preview = r.text[:500] if hasattr(r, "text") else "<no body>"
+        print(f"[wattnet_fetch] JSON decode failed status={r.status_code} body={body_preview}", flush=True)
+        raise
     if isinstance(data, list):
         if not data or len(data) == 0:
             raise HTTPException(status_code=502, detail="WattNet returned empty list")
@@ -479,12 +514,20 @@ def post_ci(payload: CIRequest, request: Request):
     agg_header = request.headers.get("aggregate")
     if agg_header is not None and "aggregate" not in merged_params:
         merged_params["aggregate"] = agg_header
+        
     agg_query = q.get("aggregate")
     if agg_query is not None and "aggregate" not in merged_params:
         merged_params["aggregate"] = agg_query
 
-    auth_token = _clean_bearer_token(request.headers.get("authorization"))
-    return _compute_ci_response(payload, merged_params or None, auth_token)
+    # Verify caller token (AuthServer)
+    raw_auth_header = request.headers.get("authorization")
+    print("---AuthServer token (JWT verification)---")
+    print(f"Token: {raw_auth_header}")
+    print(f"Authorization header: {raw_auth_header}")
+    print(f"AUTH_VERIFY_URL={AUTH_VERIFY_URL}")
+    _verify_request_token(raw_auth_header)
+
+    return _compute_ci_response(payload, merged_params or None)
 
 def _resolve_ci_window(req: CIRequest) -> tuple[datetime, datetime]:
     if req.start and req.end:
@@ -492,7 +535,28 @@ def _resolve_ci_window(req: CIRequest) -> tuple[datetime, datetime]:
     anchor = _ensure_utc(req.start or req.time or datetime.now(timezone.utc))
     return anchor - timedelta(hours=1), anchor + timedelta(hours=2)
 
-def _compute_ci_response(req: CIRequest, wattnet_params: Optional[Dict[str, Any]] = None, token: Optional[str] = None) -> CIResponse:
+def _extract_ci_from_payload(payload: Dict[str, Any]) -> tuple[float, Optional[str]]:
+    """Return (value, datetime_str) from WattNet payload supporting both aggregated and series shapes."""
+    if isinstance(payload, dict):
+        direct_val = payload.get("value")
+        if isinstance(direct_val, (int, float)):
+            return float(direct_val), payload.get("end") or payload.get("start")
+
+        series = payload.get("series")
+        if isinstance(series, list):
+            for series_entry in reversed(series):
+                values = series_entry.get("values")
+                if not isinstance(values, list):
+                    continue
+                for val_entry in reversed(values):
+                    if isinstance(val_entry, (list, tuple)) and len(val_entry) >= 2:
+                        ts, val = val_entry[0], val_entry[1]
+                        if isinstance(val, (int, float)):
+                            return float(val), ts
+
+    raise HTTPException(status_code=502, detail="No numeric CI value found in WattNet response (value/series missing).")
+
+def _compute_ci_response(req: CIRequest, wattnet_params: Optional[Dict[str, Any]] = None) -> CIResponse:
     merged_params: Dict[str, Any] = {}
     if req.wattnet_params:
         merged_params.update(req.wattnet_params)
@@ -505,14 +569,17 @@ def _compute_ci_response(req: CIRequest, wattnet_params: Optional[Dict[str, Any]
     print(f"[ci] window {start} -> {end}", flush=True)
     
     try:
-        payload = wattnet_fetch(req.lat, req.lon, start, end, extra_params=merged_params or None, token=token)
-        if "value" not in payload or not isinstance(payload["value"], (int, float)):
-             raise HTTPException(status_code=502, detail="No numeric 'value' field found in WattNet response.")
+        payload = wattnet_fetch(req.lat, req.lon, start, end, extra_params=merged_params or None)
     except Exception as e:
+        # Log richer context to aid debugging (status + body when available)
+        resp = getattr(e, "response", None)
+        if resp is not None:
+            body_preview = resp.text[:500] if resp.text else ""
+            print(f"[wattnet] error status={resp.status_code} body={body_preview}", flush=True)
+        print(f"[wattnet] exception: {repr(e)}", flush=True)
         raise HTTPException(status_code=502, detail=f"WattNet error: {e}")
 
-    
-    ci = float(payload["value"])
+    ci, ci_dt = _extract_ci_from_payload(payload)
     eff_ci = ci * pue_value # Effective Carbon Intensity = CI * PUE
     
     # Calculate CFP if energy is provided
@@ -526,7 +593,7 @@ def _compute_ci_response(req: CIRequest, wattnet_params: Optional[Dict[str, Any]
     return CIResponse(
         source="wattnet",
         zone=payload.get("zone"),
-        datetime=payload.get("end") or payload.get("start"),
+        datetime=ci_dt or payload.get("end") or payload.get("start"),
         ci_gco2_per_kwh=ci,
         pue=pue_value,
         effective_ci_gco2_per_kwh=eff_ci,
@@ -558,11 +625,12 @@ def _infer_times(payload: MetricsEnvelope) -> tuple[datetime, datetime, datetime
     return start, stop, when
 
 @app.post("/transform-and-forward")
-def transform_and_forward(payload: MetricsEnvelope = Body(...)):
+def transform_and_forward(request: Request, payload: MetricsEnvelope = Body(...)):
     """
     Receives MetricsEnvelope, calculates PUE/CI/CFP, injects them into fact_site_event,
     and forwards to CNR SQL Adapter.
     """
+    # _verify_request_token(request.headers.get("authorization"))
     # 1. Resolve Site and Location
     site_name = payload.site or payload.fact_site_event.get("site")
     if not site_name:
@@ -639,16 +707,16 @@ def transform_and_forward(payload: MetricsEnvelope = Body(...)):
         fse["energy_wh"] = energy_wh
 
     # 7. Forward to SQL Adapter
-    try:
-        print(f"[forward] Forwarding metric for {site_name}. CFP={cfp_g}g", flush=True)
-        r = sess.post(CNR_SQL_FORWARD_URL, json=payload.model_dump(), timeout=20)
-        r.raise_for_status()
+    # try:
+    #     print(f"[forward] Forwarding metric for {site_name}. CFP={cfp_g}g", flush=True)
+    #     r = sess.post(CNR_SQL_FORWARD_URL, json=payload.model_dump(), timeout=20)
+    #     r.raise_for_status()
 
-        print(f"[forward] Success. Metric accepted by SQL Adapter.", flush=True)
-    except Exception as e:
-        # Log but don't crash the caller, or raise 502 depending on pipeline strictness
-        print(f"[forward] Error: {e}", flush=True)
-        raise HTTPException(status_code=502, detail=f"Forwarding failed: {e}")
+    #     print(f"[forward] Success. Metric accepted by SQL Adapter.", flush=True)
+    # except Exception as e:
+    #     # Log but don't crash the caller, or raise 502 depending on pipeline strictness
+    #     print(f"[forward] Error: {e}", flush=True)
+    #     raise HTTPException(status_code=502, detail=f"Forwarding failed: {e}")
 
     return {"status": "ok", "forwarded_to": CNR_SQL_FORWARD_URL, "cfp_g": cfp_g}
 
