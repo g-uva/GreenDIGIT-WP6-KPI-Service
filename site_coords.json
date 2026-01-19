@@ -1,34 +1,2966 @@
 {
-  "ALBERTA-LCG2": [53.5461, -113.4938],
-  "CERN-PROD": [46.2331, 6.0559],
-  "INFN-ROMA1": [41.9028, 12.4964],
-  "NIKHEF-ELPROD": [52.3556, 4.9500],
-  "RAL-LCG2": [51.5714, -1.3080],
-  "AEGIS01-IPB-SCL": [44.8176, 20.4569],
-  "ALICE-IN2P3": [45.7840, 4.8700],
-  "BEIJING-LCG2": [39.9042, 116.4074],
-  "BUDAPEST-LCG2": [47.4979, 19.0402],
-  "DESY-HH": [53.5763, 9.8810],
-  "DESY-ZN": [52.3906, 13.0669],
-  "FZK-LCG2": [49.0950, 8.4310],
-  "GRIF-LPNHE": [48.8462, 2.3460],
-  "IN2P3-CC": [45.7840, 4.8700],
-  "IN2P3-CPPM": [43.2965, 5.3698],
-  "INFN-CNAF": [44.4949, 11.3426],
-  "INFN-FRASCATI": [41.8089, 12.6761],
-  "INFN-MILANO": [45.4642, 9.1900],
-  "INFN-NAPOLI": [40.8522, 14.2681],
-  "INFN-PISA": [43.7160, 10.4000],
-  "INFN-TORINO": [45.0703, 7.6869],
-  "KR-KISTI-GSDC-01": [36.3913, 127.3620],
-  "PIC": [41.3851, 2.1734],
-  "PRAGUE-FZU": [50.0755, 14.4378],
-  "RU-JINR-LCG2": [55.7050, 37.6639],
-  "TRIUMF-LCG2": [49.2463, -123.1162],
-  "TU-Kosice": [48.7164, 21.2611],
-  "US-ATLAS-AGLT2": [42.2808, -83.7430],
-  "US-ATLAS-MWT2": [41.8781, -87.6298],
-  "US-ATLAS-NERSC": [37.8732, -122.2573],
-  "US-ATLAS-SWT2": [29.7604, -95.3698],
-  "USCMS-FNAL-WC1": [41.8419, -88.2415]
+  "100IT": [
+    0.0,
+    0.0
+  ],
+  "AEGIS01-IPB-SCL": [
+    44.8176,
+    20.4569
+  ],
+  "AEGIS02-RCUB": [
+    0.0,
+    0.0
+  ],
+  "AEGIS03-ELEF-LEDA": [
+    0.0,
+    0.0
+  ],
+  "AEGIS04-KG": [
+    0.0,
+    0.0
+  ],
+  "AEGIS05-ETFBG": [
+    0.0,
+    0.0
+  ],
+  "AEGIS07-IPB-ATLAS": [
+    0.0,
+    0.0
+  ],
+  "AEGIS09-FTN-KM": [
+    0.0,
+    0.0
+  ],
+  "AEGIS10-VINCA-CMS": [
+    0.0,
+    0.0
+  ],
+  "AEGIS11-MISANU": [
+    0.0,
+    0.0
+  ],
+  "AGH-ICSR": [
+    0.0,
+    0.0
+  ],
+  "ALBERTA-LCG2": [
+    53.5461,
+    -113.4938
+  ],
+  "AM-01-AANL": [
+    0.0,
+    0.0
+  ],
+  "AM-01-IIAP": [
+    0.0,
+    0.0
+  ],
+  "AM-02-SEUA": [
+    0.0,
+    0.0
+  ],
+  "AM-03-YSU": [
+    0.0,
+    0.0
+  ],
+  "AM-04-YERPHI": [
+    0.0,
+    0.0
+  ],
+  "AM-05-YSU": [
+    0.0,
+    0.0
+  ],
+  "AMD64.PSNC.PL": [
+    0.0,
+    0.0
+  ],
+  "ARAGRID-CIENCIAS": [
+    0.0,
+    0.0
+  ],
+  "ARAGRID-HUESCA": [
+    0.0,
+    0.0
+  ],
+  "ARAGRID-TERUEL": [
+    0.0,
+    0.0
+  ],
+  "AREA-BO": [
+    0.0,
+    0.0
+  ],
+  "ARNES": [
+    0.0,
+    0.0
+  ],
+  "ASRT": [
+    0.0,
+    0.0
+  ],
+  "ATLAND": [
+    0.0,
+    0.0
+  ],
+  "AU-Melbourne": [
+    0.0,
+    0.0
+  ],
+  "AUVERGRID": [
+    0.0,
+    0.0
+  ],
+  "AZ-IFAN": [
+    0.0,
+    0.0
+  ],
+  "AstrogridPUC": [
+    0.0,
+    0.0
+  ],
+  "Australia-ATLAS": [
+    0.0,
+    0.0
+  ],
+  "Australia-T2": [
+    0.0,
+    0.0
+  ],
+  "BCBR": [
+    0.0,
+    0.0
+  ],
+  "BEIJING-CNIC-LCG2-IA64": [
+    0.0,
+    0.0
+  ],
+  "BEIJING-LCG2": [
+    39.9042,
+    116.4074
+  ],
+  "BEIJING-LCG2-t": [
+    0.0,
+    0.0
+  ],
+  "BEIJING-T1": [
+    0.0,
+    0.0
+  ],
+  "BEgrid-BELNET": [
+    0.0,
+    0.0
+  ],
+  "BEgrid-KULeuven": [
+    0.0,
+    0.0
+  ],
+  "BEgrid-UGent": [
+    0.0,
+    0.0
+  ],
+  "BEgrid-ULB-VUB": [
+    0.0,
+    0.0
+  ],
+  "BEgrid-UniversiteitAntwerpen": [
+    0.0,
+    0.0
+  ],
+  "BG-INRNE": [
+    0.0,
+    0.0
+  ],
+  "BG01-IPP": [
+    0.0,
+    0.0
+  ],
+  "BG02-IM": [
+    0.0,
+    0.0
+  ],
+  "BG03-NGCC": [
+    0.0,
+    0.0
+  ],
+  "BG04-ACAD": [
+    0.0,
+    0.0
+  ],
+  "BG05-SUGrid": [
+    0.0,
+    0.0
+  ],
+  "BG06-GPHI": [
+    0.0,
+    0.0
+  ],
+  "BG07-EDU": [
+    0.0,
+    0.0
+  ],
+  "BG08-MADARA": [
+    0.0,
+    0.0
+  ],
+  "BIFI": [
+    0.0,
+    0.0
+  ],
+  "BIFI-IBERGRID": [
+    0.0,
+    0.0
+  ],
+  "BIOCOMP": [
+    0.0,
+    0.0
+  ],
+  "BMEGrid": [
+    0.0,
+    0.0
+  ],
+  "BMRZ-FRANKFURT": [
+    0.0,
+    0.0
+  ],
+  "BRGM-ORLEANS": [
+    0.0,
+    0.0
+  ],
+  "BSC-Cloud": [
+    0.0,
+    0.0
+  ],
+  "BUDAPEST": [
+    0.0,
+    0.0
+  ],
+  "BY-NCPHEP": [
+    0.0,
+    0.0
+  ],
+  "BelGrid-UCL": [
+    0.0,
+    0.0
+  ],
+  "CA-ALBERTA-WESTGRID-T2": [
+    0.0,
+    0.0
+  ],
+  "CA-MCGILL-CLUMEQ-PPS": [
+    0.0,
+    0.0
+  ],
+  "CA-MCGILL-CLUMEQ-T2": [
+    0.0,
+    0.0
+  ],
+  "CA-SFU-T2": [
+    0.0,
+    0.0
+  ],
+  "CA-TORONTO-T3": [
+    0.0,
+    0.0
+  ],
+  "CA-TRIUMF-DISKLESS": [
+    0.0,
+    0.0
+  ],
+  "CA-TRIUMF-DYNAFED": [
+    0.0,
+    0.0
+  ],
+  "CA-TRIUMF-T2K": [
+    0.0,
+    0.0
+  ],
+  "CA-UVic-Cloud": [
+    0.0,
+    0.0
+  ],
+  "CA-VICTORIA-WESTGRID-T2": [
+    0.0,
+    0.0
+  ],
+  "CA-WATERLOO-T2": [
+    0.0,
+    0.0
+  ],
+  "CAFPE-GRANADA": [
+    0.0,
+    0.0
+  ],
+  "CAMK": [
+    0.0,
+    0.0
+  ],
+  "CARLETONU-LCG2": [
+    0.0,
+    0.0
+  ],
+  "CBPF": [
+    0.0,
+    0.0
+  ],
+  "CENI": [
+    0.0,
+    0.0
+  ],
+  "CERN-CIC": [
+    0.0,
+    0.0
+  ],
+  "CERN-PROD": [
+    46.2331,
+    6.0559
+  ],
+  "CERN-SC": [
+    0.0,
+    0.0
+  ],
+  "CERN_PPS": [
+    0.0,
+    0.0
+  ],
+  "CESGA": [
+    0.0,
+    0.0
+  ],
+  "CESGA-CLOUD": [
+    0.0,
+    0.0
+  ],
+  "CESGA-PPS": [
+    0.0,
+    0.0
+  ],
+  "CESIC-UNICAL": [
+    0.0,
+    0.0
+  ],
+  "CESNET-MCC": [
+    0.0,
+    0.0
+  ],
+  "CESNET-MCCG2": [
+    0.0,
+    0.0
+  ],
+  "CESNET-MetaCloud": [
+    0.0,
+    0.0
+  ],
+  "CETA-GRID": [
+    0.0,
+    0.0
+  ],
+  "CFP-IST": [
+    0.0,
+    0.0
+  ],
+  "CGG-LCG2": [
+    0.0,
+    0.0
+  ],
+  "CICESE": [
+    0.0,
+    0.0
+  ],
+  "CIEMAT-LCG2": [
+    0.0,
+    0.0
+  ],
+  "CIEMAT-TIC": [
+    0.0,
+    0.0
+  ],
+  "CIN2": [
+    0.0,
+    0.0
+  ],
+  "CIRMMP": [
+    0.0,
+    0.0
+  ],
+  "CLOSED-BY-BNTU": [
+    0.0,
+    0.0
+  ],
+  "CLOSED-BY-JIPNR-SOSNY": [
+    0.0,
+    0.0
+  ],
+  "CLOSED-BY-JIPNR-SOSNY-2": [
+    0.0,
+    0.0
+  ],
+  "CLOSED-BY-NCPHEP": [
+    0.0,
+    0.0
+  ],
+  "CLOSED-BY-UIIP": [
+    0.0,
+    0.0
+  ],
+  "CLOUDIFIN": [
+    0.0,
+    0.0
+  ],
+  "CMS-BURT-ITB": [
+    0.0,
+    0.0
+  ],
+  "CN-BEIJING-PKU": [
+    0.0,
+    0.0
+  ],
+  "CNB-LCG2": [
+    0.0,
+    0.0
+  ],
+  "CNR-ILC-PISA": [
+    0.0,
+    0.0
+  ],
+  "CNR-PROD-PISA": [
+    0.0,
+    0.0
+  ],
+  "CREATIS-INSA-LYON": [
+    0.0,
+    0.0
+  ],
+  "CRS4": [
+    0.0,
+    0.0
+  ],
+  "CSC": [
+    0.0,
+    0.0
+  ],
+  "CSC-cloud": [
+    0.0,
+    0.0
+  ],
+  "CSCS-LCG2": [
+    0.0,
+    0.0
+  ],
+  "CSIC-BELLATERRA": [
+    0.0,
+    0.0
+  ],
+  "CSIC-EBD-LW": [
+    0.0,
+    0.0
+  ],
+  "CSTCLOUD-EGI": [
+    0.0,
+    0.0
+  ],
+  "CYF-CERTIF-TB": [
+    0.0,
+    0.0
+  ],
+  "CYFRONET-CLOUD": [
+    0.0,
+    0.0
+  ],
+  "CYFRONET-IA64": [
+    0.0,
+    0.0
+  ],
+  "CYFRONET-LCG2": [
+    0.0,
+    0.0
+  ],
+  "CYFRONET-PROMETHEUS": [
+    0.0,
+    0.0
+  ],
+  "CYFRONET-S1": [
+    0.0,
+    0.0
+  ],
+  "ClusterUL": [
+    0.0,
+    0.0
+  ],
+  "DESY-CC": [
+    0.0,
+    0.0
+  ],
+  "DESY-HH": [
+    53.5763,
+    9.881
+  ],
+  "DESY-ZN": [
+    52.3906,
+    13.0669
+  ],
+  "DI-UMinho": [
+    0.0,
+    0.0
+  ],
+  "DZ-01-ARN": [
+    0.0,
+    0.0
+  ],
+  "EELA-UNLP": [
+    0.0,
+    0.0
+  ],
+  "EELA-UTFSM": [
+    0.0,
+    0.0
+  ],
+  "EENet": [
+    0.0,
+    0.0
+  ],
+  "EFDA-JET": [
+    0.0,
+    0.0
+  ],
+  "EG-BUE-CTP": [
+    0.0,
+    0.0
+  ],
+  "EG-PHY-ASU-T3": [
+    0.0,
+    0.0
+  ],
+  "EG-ZC-T3": [
+    0.0,
+    0.0
+  ],
+  "EGI-ARTEFACT-REGISTRY": [
+    0.0,
+    0.0
+  ],
+  "EGI-CLOUD-OPS": [
+    0.0,
+    0.0
+  ],
+  "EGI-CONTAINER-COMPUTE": [
+    0.0,
+    0.0
+  ],
+  "EGI-DATAHUB": [
+    0.0,
+    0.0
+  ],
+  "EGI-DDNS": [
+    0.0,
+    0.0
+  ],
+  "EGI-DEEP": [
+    0.0,
+    0.0
+  ],
+  "EGI-DODAS": [
+    0.0,
+    0.0
+  ],
+  "EGI-FGSG": [
+    0.0,
+    0.0
+  ],
+  "EGI-INDIGO-PAAS": [
+    0.0,
+    0.0
+  ],
+  "EGI-IS-CLOUD": [
+    0.0,
+    0.0
+  ],
+  "EGI-MARKETPLACE": [
+    0.0,
+    0.0
+  ],
+  "EGI-NOTEBOOKS": [
+    0.0,
+    0.0
+  ],
+  "EGI-OPENRDM": [
+    0.0,
+    0.0
+  ],
+  "EGI-OPSPORTAL": [
+    0.0,
+    0.0
+  ],
+  "EGI-RCauth": [
+    0.0,
+    0.0
+  ],
+  "EGI-SECRETS-STORE": [
+    0.0,
+    0.0
+  ],
+  "EGI-VCYCLE": [
+    0.0,
+    0.0
+  ],
+  "ELKH-CLOUD": [
+    0.0,
+    0.0
+  ],
+  "EMBL-EBI": [
+    0.0,
+    0.0
+  ],
+  "EODC": [
+    0.0,
+    0.0
+  ],
+  "EOSC-CORE-INFRA-PROXY": [
+    0.0,
+    0.0
+  ],
+  "EOSC-Portal-and-Marketplace": [
+    0.0,
+    0.0
+  ],
+  "EOSChub-Helpdesk": [
+    0.0,
+    0.0
+  ],
+  "ESA-ESAC": [
+    0.0,
+    0.0
+  ],
+  "ESA-ESRIN": [
+    0.0,
+    0.0
+  ],
+  "ESRF": [
+    0.0,
+    0.0
+  ],
+  "EdgesAtHome": [
+    0.0,
+    0.0
+  ],
+  "FBF-Brescia-IT": [
+    0.0,
+    0.0
+  ],
+  "FENIX": [
+    0.0,
+    0.0
+  ],
+  "FI-LCG2": [
+    0.0,
+    0.0
+  ],
+  "FI_AA": [
+    0.0,
+    0.0
+  ],
+  "FI_Aalto": [
+    0.0,
+    0.0
+  ],
+  "FI_HIP_T2": [
+    0.0,
+    0.0
+  ],
+  "FI_Helsinki": [
+    0.0,
+    0.0
+  ],
+  "FI_JYU": [
+    0.0,
+    0.0
+  ],
+  "FI_LUT": [
+    0.0,
+    0.0
+  ],
+  "FI_Oulu": [
+    0.0,
+    0.0
+  ],
+  "FI_TUT": [
+    0.0,
+    0.0
+  ],
+  "FI_UEF": [
+    0.0,
+    0.0
+  ],
+  "FI_UTU": [
+    0.0,
+    0.0
+  ],
+  "FMPhI-UNIBA": [
+    0.0,
+    0.0
+  ],
+  "FRANCE-GRILLES-TESTBED": [
+    0.0,
+    0.0
+  ],
+  "FZJ": [
+    0.0,
+    0.0
+  ],
+  "FZK-LCG2": [
+    49.095,
+    8.431
+  ],
+  "FZU-IPV6": [
+    0.0,
+    0.0
+  ],
+  "GARR-01-DIR": [
+    0.0,
+    0.0
+  ],
+  "GE-01-GRENA": [
+    0.0,
+    0.0
+  ],
+  "GILDA-INFN-CATANIA": [
+    0.0,
+    0.0
+  ],
+  "GILDA-NeSC": [
+    0.0,
+    0.0
+  ],
+  "GILDA-PADOVA": [
+    0.0,
+    0.0
+  ],
+  "GILDA-SIRIUS": [
+    0.0,
+    0.0
+  ],
+  "GILDA-VEGA": [
+    0.0,
+    0.0
+  ],
+  "GR-01-AUTH": [
+    0.0,
+    0.0
+  ],
+  "GR-02-UoM": [
+    0.0,
+    0.0
+  ],
+  "GR-03-HEPNTUA": [
+    0.0,
+    0.0
+  ],
+  "GR-04-FORTH-ICS": [
+    0.0,
+    0.0
+  ],
+  "GR-05-DEMOKRITOS": [
+    0.0,
+    0.0
+  ],
+  "GR-06-IASA": [
+    0.0,
+    0.0
+  ],
+  "GR-07-UOI-HEPLAB": [
+    0.0,
+    0.0
+  ],
+  "GR-08-CEID": [
+    0.0,
+    0.0
+  ],
+  "GR-09-UoA": [
+    0.0,
+    0.0
+  ],
+  "GR-10-UOI": [
+    0.0,
+    0.0
+  ],
+  "GR-11-UPATRAS": [
+    0.0,
+    0.0
+  ],
+  "GR-12-TEIKAV": [
+    0.0,
+    0.0
+  ],
+  "GRID-UNAM": [
+    0.0,
+    0.0
+  ],
+  "GRID-UNISON": [
+    0.0,
+    0.0
+  ],
+  "GRIDIFIN": [
+    0.0,
+    0.0
+  ],
+  "GRIDOPS-ACCPORTAL": [
+    0.0,
+    0.0
+  ],
+  "GRIDOPS-APEL": [
+    0.0,
+    0.0
+  ],
+  "GRIDOPS-CATCHALL": [
+    0.0,
+    0.0
+  ],
+  "GRIDOPS-CRM": [
+    0.0,
+    0.0
+  ],
+  "GRIDOPS-CTOOLS": [
+    0.0,
+    0.0
+  ],
+  "GRIDOPS-CVMFS": [
+    0.0,
+    0.0
+  ],
+  "GRIDOPS-CheckIn": [
+    0.0,
+    0.0
+  ],
+  "GRIDOPS-DIRAC4EGI": [
+    0.0,
+    0.0
+  ],
+  "GRIDOPS-EC3": [
+    0.0,
+    0.0
+  ],
+  "GRIDOPS-GGUS": [
+    0.0,
+    0.0
+  ],
+  "GRIDOPS-GOCDB": [
+    0.0,
+    0.0
+  ],
+  "GRIDOPS-GRIDVIEW": [
+    0.0,
+    0.0
+  ],
+  "GRIDOPS-GSTAT": [
+    0.0,
+    0.0
+  ],
+  "GRIDOPS-LTOS": [
+    0.0,
+    0.0
+  ],
+  "GRIDOPS-METRICSPORTAL": [
+    0.0,
+    0.0
+  ],
+  "GRIDOPS-MON": [
+    0.0,
+    0.0
+  ],
+  "GRIDOPS-MSG": [
+    0.0,
+    0.0
+  ],
+  "GRIDOPS-PERUN": [
+    0.0,
+    0.0
+  ],
+  "GRIDOPS-SAM": [
+    0.0,
+    0.0
+  ],
+  "GRIDOPS-SECTOOLS": [
+    0.0,
+    0.0
+  ],
+  "GRIDOPS-TMP": [
+    0.0,
+    0.0
+  ],
+  "GRIDOPS-UMDREPO": [
+    0.0,
+    0.0
+  ],
+  "GRIDOPS-WS-PGRADE": [
+    0.0,
+    0.0
+  ],
+  "GRIDOPS-XGUS": [
+    0.0,
+    0.0
+  ],
+  "GRIDOPS-eGRANT": [
+    0.0,
+    0.0
+  ],
+  "GRIF": [
+    0.0,
+    0.0
+  ],
+  "GRISU-COMETA-INAF-CT": [
+    0.0,
+    0.0
+  ],
+  "GRISU-COMETA-INFN-CT": [
+    0.0,
+    0.0
+  ],
+  "GRISU-COMETA-INFN-LNS": [
+    0.0,
+    0.0
+  ],
+  "GRISU-COMETA-ING-MESSINA": [
+    0.0,
+    0.0
+  ],
+  "GRISU-COMETA-UNICT-DIIT": [
+    0.0,
+    0.0
+  ],
+  "GRISU-COMETA-UNICT-DMI": [
+    0.0,
+    0.0
+  ],
+  "GRISU-COMETA-UNIPA": [
+    0.0,
+    0.0
+  ],
+  "GRISU-CYBERSAR-CAGLIARI": [
+    0.0,
+    0.0
+  ],
+  "GRISU-ENEA-GRID": [
+    0.0,
+    0.0
+  ],
+  "GRISU-SPACI-LECCE": [
+    0.0,
+    0.0
+  ],
+  "GRISU-SPACI-NAPOLI": [
+    0.0,
+    0.0
+  ],
+  "GRISU-UNINA": [
+    0.0,
+    0.0
+  ],
+  "GRNET-ARIS": [
+    0.0,
+    0.0
+  ],
+  "GRNET-OPENSTACK": [
+    0.0,
+    0.0
+  ],
+  "GSI-LCG2": [
+    0.0,
+    0.0
+  ],
+  "GWDG-CLOUD": [
+    0.0,
+    0.0
+  ],
+  "GoeGrid": [
+    0.0,
+    0.0
+  ],
+  "GrimaPUC": [
+    0.0,
+    0.0
+  ],
+  "HEPHY-UIBK": [
+    0.0,
+    0.0
+  ],
+  "HG-01-GRNET": [
+    0.0,
+    0.0
+  ],
+  "HG-02-IASA": [
+    0.0,
+    0.0
+  ],
+  "HG-03-AUTH": [
+    0.0,
+    0.0
+  ],
+  "HG-04-CTI-CEID": [
+    0.0,
+    0.0
+  ],
+  "HG-05-FORTH": [
+    0.0,
+    0.0
+  ],
+  "HG-06-EKT": [
+    0.0,
+    0.0
+  ],
+  "HG-08-Okeanos": [
+    0.0,
+    0.0
+  ],
+  "HG-09-Okeanos-Cloud": [
+    0.0,
+    0.0
+  ],
+  "HK-HKU-CC-01": [
+    0.0,
+    0.0
+  ],
+  "HK-LCG2": [
+    0.0,
+    0.0
+  ],
+  "HPBR-LCG2": [
+    0.0,
+    0.0
+  ],
+  "HPTC-LCG2": [
+    0.0,
+    0.0
+  ],
+  "HPTC-LCG2ia64": [
+    0.0,
+    0.0
+  ],
+  "HR-01-RBI (closed)": [
+    0.0,
+    0.0
+  ],
+  "HRL_KZ": [
+    0.0,
+    0.0
+  ],
+  "HTC-BIGGRID": [
+    0.0,
+    0.0
+  ],
+  "Hephy-Vienna": [
+    0.0,
+    0.0
+  ],
+  "IAA-CSIC": [
+    0.0,
+    0.0
+  ],
+  "IBCP-GBIO": [
+    0.0,
+    0.0
+  ],
+  "IC-UFAL": [
+    0.0,
+    0.0
+  ],
+  "ICEAGE-CATANIA": [
+    0.0,
+    0.0
+  ],
+  "ICM": [
+    0.0,
+    0.0
+  ],
+  "ICM-PLGRID": [
+    0.0,
+    0.0
+  ],
+  "ICN-UNAM": [
+    0.0,
+    0.0
+  ],
+  "IEETA": [
+    0.0,
+    0.0
+  ],
+  "IEPSAS-Kosice": [
+    0.0,
+    0.0
+  ],
+  "IFCA-LCG2": [
+    0.0,
+    0.0
+  ],
+  "IFIC-LCG2": [
+    0.0,
+    0.0
+  ],
+  "IFISC-GRID": [
+    0.0,
+    0.0
+  ],
+  "IGI-BOLOGNA": [
+    0.0,
+    0.0
+  ],
+  "IISAS-Bratislava": [
+    0.0,
+    0.0
+  ],
+  "IISAS-FedCloud": [
+    0.0,
+    0.0
+  ],
+  "IISAS-GILDA": [
+    0.0,
+    0.0
+  ],
+  "IISAS-GPUCloud": [
+    0.0,
+    0.0
+  ],
+  "IISAS-Nebula": [
+    0.0,
+    0.0
+  ],
+  "IL-BGU": [
+    0.0,
+    0.0
+  ],
+  "IL-BGU-PPS": [
+    0.0,
+    0.0
+  ],
+  "IL-IUCC": [
+    0.0,
+    0.0
+  ],
+  "IL-TAU-CS": [
+    0.0,
+    0.0
+  ],
+  "IL-TAU-HEP": [
+    0.0,
+    0.0
+  ],
+  "ILIFU-UCT": [
+    0.0,
+    0.0
+  ],
+  "IL_IUCC_IG": [
+    0.0,
+    0.0
+  ],
+  "IMCSUL": [
+    0.0,
+    0.0
+  ],
+  "IMCSUL-INF": [
+    0.0,
+    0.0
+  ],
+  "IMISC": [
+    0.0,
+    0.0
+  ],
+  "IN-DAE-VECC-01": [
+    0.0,
+    0.0
+  ],
+  "IN-DAE-VECC-02": [
+    0.0,
+    0.0
+  ],
+  "IN2P3-CC": [
+    45.784,
+    4.87
+  ],
+  "IN2P3-CC-T2": [
+    0.0,
+    0.0
+  ],
+  "IN2P3-CPPM": [
+    43.2965,
+    5.3698
+  ],
+  "IN2P3-IPNL": [
+    0.0,
+    0.0
+  ],
+  "IN2P3-IRES": [
+    0.0,
+    0.0
+  ],
+  "IN2P3-LAPP": [
+    0.0,
+    0.0
+  ],
+  "IN2P3-LPC": [
+    0.0,
+    0.0
+  ],
+  "IN2P3-LPSC": [
+    0.0,
+    0.0
+  ],
+  "IN2P3-SUBATECH": [
+    0.0,
+    0.0
+  ],
+  "INAF-TRIESTE": [
+    0.0,
+    0.0
+  ],
+  "INAF-TRIESTE-STACK": [
+    0.0,
+    0.0
+  ],
+  "INAF-TS": [
+    0.0,
+    0.0
+  ],
+  "INDIACMS-TIFR": [
+    0.0,
+    0.0
+  ],
+  "INDIGO-CATANIA-STACK": [
+    0.0,
+    0.0
+  ],
+  "INFN-BARI": [
+    0.0,
+    0.0
+  ],
+  "INFN-BOLOGNA": [
+    0.0,
+    0.0
+  ],
+  "INFN-BOLOGNA-CMS": [
+    0.0,
+    0.0
+  ],
+  "INFN-BOLOGNA-T3": [
+    0.0,
+    0.0
+  ],
+  "INFN-CAGLIARI": [
+    0.0,
+    0.0
+  ],
+  "INFN-CASCINA": [
+    0.0,
+    0.0
+  ],
+  "INFN-CATANIA": [
+    0.0,
+    0.0
+  ],
+  "INFN-CATANIA-NEBULA": [
+    0.0,
+    0.0
+  ],
+  "INFN-CLOUD-BARI": [
+    0.0,
+    0.0
+  ],
+  "INFN-CLOUD-CATANIA": [
+    0.0,
+    0.0
+  ],
+  "INFN-CLOUD-CNAF": [
+    0.0,
+    0.0
+  ],
+  "INFN-CNAF-LHCB": [
+    0.0,
+    0.0
+  ],
+  "INFN-COSENZA": [
+    0.0,
+    0.0
+  ],
+  "INFN-FERRARA": [
+    0.0,
+    0.0
+  ],
+  "INFN-FIRENZE": [
+    0.0,
+    0.0
+  ],
+  "INFN-FRASCATI": [
+    41.8089,
+    12.6761
+  ],
+  "INFN-GENOVA": [
+    0.0,
+    0.0
+  ],
+  "INFN-IGI-CNAF-FedCloud": [
+    0.0,
+    0.0
+  ],
+  "INFN-LECCE": [
+    0.0,
+    0.0
+  ],
+  "INFN-LNL-2": [
+    0.0,
+    0.0
+  ],
+  "INFN-LNS": [
+    0.0,
+    0.0
+  ],
+  "INFN-MIB": [
+    0.0,
+    0.0
+  ],
+  "INFN-MILANO": [
+    45.4642,
+    9.19
+  ],
+  "INFN-MILANO-ATLASC": [
+    0.0,
+    0.0
+  ],
+  "INFN-NAPOLI": [
+    40.8522,
+    14.2681
+  ],
+  "INFN-NAPOLI-ARGO": [
+    0.0,
+    0.0
+  ],
+  "INFN-NAPOLI-ATLAS": [
+    0.0,
+    0.0
+  ],
+  "INFN-NAPOLI-CMS": [
+    0.0,
+    0.0
+  ],
+  "INFN-NAPOLI-PAMELA": [
+    0.0,
+    0.0
+  ],
+  "INFN-PADOVA": [
+    0.0,
+    0.0
+  ],
+  "INFN-PADOVA-CMS": [
+    0.0,
+    0.0
+  ],
+  "INFN-PADOVA-CREAMTEST": [
+    0.0,
+    0.0
+  ],
+  "INFN-PADOVA-STACK": [
+    0.0,
+    0.0
+  ],
+  "INFN-PARMA": [
+    0.0,
+    0.0
+  ],
+  "INFN-PAVIA": [
+    0.0,
+    0.0
+  ],
+  "INFN-PERUGIA": [
+    0.0,
+    0.0
+  ],
+  "INFN-PISA": [
+    43.716,
+    10.4
+  ],
+  "INFN-ROMA1": [
+    41.9028,
+    12.4964
+  ],
+  "INFN-ROMA1-CMS": [
+    0.0,
+    0.0
+  ],
+  "INFN-ROMA1-TEO": [
+    0.0,
+    0.0
+  ],
+  "INFN-ROMA1-VIRGO": [
+    0.0,
+    0.0
+  ],
+  "INFN-ROMA2": [
+    0.0,
+    0.0
+  ],
+  "INFN-ROMA3": [
+    0.0,
+    0.0
+  ],
+  "INFN-T1": [
+    0.0,
+    0.0
+  ],
+  "INFN-TORINO": [
+    45.0703,
+    7.6869
+  ],
+  "INFN-TRIESTE": [
+    0.0,
+    0.0
+  ],
+  "INSU01-PARIS": [
+    0.0,
+    0.0
+  ],
+  "IPSL-IPGP-LCG2": [
+    0.0,
+    0.0
+  ],
+  "IR-IPM-HEP": [
+    0.0,
+    0.0
+  ],
+  "ISIS-UNIANDES": [
+    0.0,
+    0.0
+  ],
+  "ISMB": [
+    0.0,
+    0.0
+  ],
+  "ITB-BARI": [
+    0.0,
+    0.0
+  ],
+  "ITEP": [
+    0.0,
+    0.0
+  ],
+  "ITIM-Cloud": [
+    0.0,
+    0.0
+  ],
+  "IUCC_Fed_Cloud": [
+    0.0,
+    0.0
+  ],
+  "JINR-LCG2": [
+    0.0,
+    0.0
+  ],
+  "JINR-T1": [
+    0.0,
+    0.0
+  ],
+  "JP-HIROSHIMA-WLCG": [
+    0.0,
+    0.0
+  ],
+  "JP-KEK-CRC-02": [
+    0.0,
+    0.0
+  ],
+  "KEELE-NGS": [
+    0.0,
+    0.0
+  ],
+  "KIT-T2": [
+    0.0,
+    0.0
+  ],
+  "KMU-PRI-LCG2": [
+    0.0,
+    0.0
+  ],
+  "KR-KISTI-CLOUD": [
+    0.0,
+    0.0
+  ],
+  "KR-KISTI-GCRT-01": [
+    0.0,
+    0.0
+  ],
+  "KR-KISTI-GSDC-01": [
+    36.3913,
+    127.362
+  ],
+  "KR-KISTI-GSDC-02": [
+    0.0,
+    0.0
+  ],
+  "KR-KISTI-HEP": [
+    0.0,
+    0.0
+  ],
+  "KR-KNU-T3": [
+    0.0,
+    0.0
+  ],
+  "KR-UOS-SSCC": [
+    0.0,
+    0.0
+  ],
+  "KTH-CLOUD": [
+    0.0,
+    0.0
+  ],
+  "KTU-BG-GLITE": [
+    0.0,
+    0.0
+  ],
+  "KTU-ELEN-LCG2": [
+    0.0,
+    0.0
+  ],
+  "Kharkov-KIPT-LCG2": [
+    0.0,
+    0.0
+  ],
+  "LCCV-UFAL": [
+    0.0,
+    0.0
+  ],
+  "LCG-IL-OU": [
+    0.0,
+    0.0
+  ],
+  "LCG-USTC": [
+    0.0,
+    0.0
+  ],
+  "LCG_KNU": [
+    0.0,
+    0.0
+  ],
+  "LEI-GLITE": [
+    0.0,
+    0.0
+  ],
+  "LIP-Coimbra": [
+    0.0,
+    0.0
+  ],
+  "LIP-Lisbon": [
+    0.0,
+    0.0
+  ],
+  "LNCC-COMCIDIS": [
+    0.0,
+    0.0
+  ],
+  "LNCC-LCG": [
+    0.0,
+    0.0
+  ],
+  "LRZ": [
+    0.0,
+    0.0
+  ],
+  "LRZ-LMU": [
+    0.0,
+    0.0
+  ],
+  "LSG-AMC": [
+    0.0,
+    0.0
+  ],
+  "LSG-AMS": [
+    0.0,
+    0.0
+  ],
+  "LSG-BCBR": [
+    0.0,
+    0.0
+  ],
+  "LSG-EMC": [
+    0.0,
+    0.0
+  ],
+  "LSG-HTC": [
+    0.0,
+    0.0
+  ],
+  "LSG-HUB": [
+    0.0,
+    0.0
+  ],
+  "LSG-KG": [
+    0.0,
+    0.0
+  ],
+  "LSG-KUN": [
+    0.0,
+    0.0
+  ],
+  "LSG-LUMC": [
+    0.0,
+    0.0
+  ],
+  "LSG-NKI": [
+    0.0,
+    0.0
+  ],
+  "LSG-RUG": [
+    0.0,
+    0.0
+  ],
+  "LSG-TUD": [
+    0.0,
+    0.0
+  ],
+  "LSG-UM": [
+    0.0,
+    0.0
+  ],
+  "LSG-UU": [
+    0.0,
+    0.0
+  ],
+  "LSG-VU": [
+    0.0,
+    0.0
+  ],
+  "LSG-WUR": [
+    0.0,
+    0.0
+  ],
+  "LUH": [
+    0.0,
+    0.0
+  ],
+  "LZU-T2": [
+    0.0,
+    0.0
+  ],
+  "M3PEC": [
+    0.0,
+    0.0
+  ],
+  "MA-01-CNRST": [
+    0.0,
+    0.0
+  ],
+  "MD-01-TUM": [
+    0.0,
+    0.0
+  ],
+  "MD-02-IMI": [
+    0.0,
+    0.0
+  ],
+  "MD-03-USM": [
+    0.0,
+    0.0
+  ],
+  "MD-04-RENAM": [
+    0.0,
+    0.0
+  ],
+  "MK-01-UKIM_II": [
+    0.0,
+    0.0
+  ],
+  "MK-02-ETF": [
+    0.0,
+    0.0
+  ],
+  "MK-03-FINKI": [
+    0.0,
+    0.0
+  ],
+  "MK-04-FINKICLOUD": [
+    0.0,
+    0.0
+  ],
+  "MPI-K": [
+    0.0,
+    0.0
+  ],
+  "MPPMU": [
+    0.0,
+    0.0
+  ],
+  "MREN-01-CIS": [
+    0.0,
+    0.0
+  ],
+  "MSFG-MULTI": [
+    0.0,
+    0.0
+  ],
+  "MSFG-OPEN": [
+    0.0,
+    0.0
+  ],
+  "MY-MIMOS-GC-01": [
+    0.0,
+    0.0
+  ],
+  "MY-NM-NEUTRON": [
+    0.0,
+    0.0
+  ],
+  "MY-UM-CRYSTAL": [
+    0.0,
+    0.0
+  ],
+  "MY-UM-SIFIR": [
+    0.0,
+    0.0
+  ],
+  "MY-UPM-BIRUNI-01": [
+    0.0,
+    0.0
+  ],
+  "MY-UPM-FSKTM-01": [
+    0.0,
+    0.0
+  ],
+  "MY-UPM-UGRID-01": [
+    0.0,
+    0.0
+  ],
+  "MY-USM-GCL": [
+    0.0,
+    0.0
+  ],
+  "MY-UTM-GRID": [
+    0.0,
+    0.0
+  ],
+  "NACAD_UFRJ": [
+    0.0,
+    0.0
+  ],
+  "NCBJ-CIS": [
+    0.0,
+    0.0
+  ],
+  "NCG-INGRID-PT": [
+    0.0,
+    0.0
+  ],
+  "NCP-LCG2": [
+    0.0,
+    0.0
+  ],
+  "NDGF-BENEDICT-T3": [
+    0.0,
+    0.0
+  ],
+  "NDGF-T1": [
+    0.0,
+    0.0
+  ],
+  "NGI_BY_SERVICES": [
+    0.0,
+    0.0
+  ],
+  "NGI_DE_SERVICES": [
+    0.0,
+    0.0
+  ],
+  "NGI_IL": [
+    0.0,
+    0.0
+  ],
+  "NGI_IL_MED1": [
+    0.0,
+    0.0
+  ],
+  "NGI_IT": [
+    0.0,
+    0.0
+  ],
+  "NGI_MD_SERVICES": [
+    0.0,
+    0.0
+  ],
+  "NGI_PL_SERVICES": [
+    0.0,
+    0.0
+  ],
+  "NGI_UA_SERVICES": [
+    0.0,
+    0.0
+  ],
+  "NGS-BELFAST": [
+    0.0,
+    0.0
+  ],
+  "NGS-BRISTOL": [
+    0.0,
+    0.0
+  ],
+  "NGS-CARDIFF": [
+    0.0,
+    0.0
+  ],
+  "NGS-DURHAM": [
+    0.0,
+    0.0
+  ],
+  "NGS-EDINBURGH": [
+    0.0,
+    0.0
+  ],
+  "NGS-GLASGOW": [
+    0.0,
+    0.0
+  ],
+  "NGS-HECTOR": [
+    0.0,
+    0.0
+  ],
+  "NGS-HPCX": [
+    0.0,
+    0.0
+  ],
+  "NGS-HUDDERSFIELD": [
+    0.0,
+    0.0
+  ],
+  "NGS-IMPERIAL": [
+    0.0,
+    0.0
+  ],
+  "NGS-LANCASTER": [
+    0.0,
+    0.0
+  ],
+  "NGS-LEEDS": [
+    0.0,
+    0.0
+  ],
+  "NGS-RALVIS": [
+    0.0,
+    0.0
+  ],
+  "NGS-READING": [
+    0.0,
+    0.0
+  ],
+  "NGS-SHEFFIELD": [
+    0.0,
+    0.0
+  ],
+  "NGS-SOUTHAMPTON": [
+    0.0,
+    0.0
+  ],
+  "NGS-WESTMINSTER": [
+    0.0,
+    0.0
+  ],
+  "NGS-WTSI": [
+    0.0,
+    0.0
+  ],
+  "NGS-YORK": [
+    0.0,
+    0.0
+  ],
+  "NIHAM": [
+    0.0,
+    0.0
+  ],
+  "NIKHEF-ELPROD": [
+    52.3556,
+    4.95
+  ],
+  "NL-T1": [
+    0.0,
+    0.0
+  ],
+  "NO-NORGRID-T2": [
+    0.0,
+    0.0
+  ],
+  "NSC-IJS": [
+    0.0,
+    0.0
+  ],
+  "NZ-UOA": [
+    0.0,
+    0.0
+  ],
+  "OBSPM": [
+    0.0,
+    0.0
+  ],
+  "OSG_SAM_TESTS": [
+    0.0,
+    0.0
+  ],
+  "PAKGRID-LCG2": [
+    0.0,
+    0.0
+  ],
+  "PAKGRID3-LCG2": [
+    0.0,
+    0.0
+  ],
+  "PARIS-UREC-IPV6": [
+    0.0,
+    0.0
+  ],
+  "PDC": [
+    0.0,
+    0.0
+  ],
+  "PDC-arc-new": [
+    0.0,
+    0.0
+  ],
+  "PEARL-AMU": [
+    0.0,
+    0.0
+  ],
+  "PH-ASTI-BUHAWI": [
+    0.0,
+    0.0
+  ],
+  "PH-ASTI-DALUBHASAAN": [
+    0.0,
+    0.0
+  ],
+  "PH-ASTI-LIKNAYAN": [
+    0.0,
+    0.0
+  ],
+  "PH-ATENEO": [
+    0.0,
+    0.0
+  ],
+  "PIC-PPS": [
+    0.0,
+    0.0
+  ],
+  "PITHIA-ESC": [
+    0.0,
+    0.0
+  ],
+  "PK-CIIT": [
+    0.0,
+    0.0
+  ],
+  "PPS-CYFRONET": [
+    0.0,
+    0.0
+  ],
+  "PPS-ENG": [
+    0.0,
+    0.0
+  ],
+  "PPS-IFIC": [
+    0.0,
+    0.0
+  ],
+  "PPS-LIP": [
+    0.0,
+    0.0
+  ],
+  "PPS-RAL": [
+    0.0,
+    0.0
+  ],
+  "PPS-RO-01-UPB": [
+    0.0,
+    0.0
+  ],
+  "PPS-SNS": [
+    0.0,
+    0.0
+  ],
+  "PPS-SiGNET": [
+    0.0,
+    0.0
+  ],
+  "PPS-TRIUMF": [
+    0.0,
+    0.0
+  ],
+  "PRISMA-INFN-BARI": [
+    0.0,
+    0.0
+  ],
+  "PSK_KIELCE": [
+    0.0,
+    0.0
+  ],
+  "PSNC": [
+    0.0,
+    0.0
+  ],
+  "PSNC-Cloud": [
+    0.0,
+    0.0
+  ],
+  "PSNC-GILDA": [
+    0.0,
+    0.0
+  ],
+  "Pangeo": [
+    0.0,
+    0.0
+  ],
+  "RAL-LCG2": [
+    51.5714,
+    -1.308
+  ],
+  "RC-GISELA-CETA": [
+    0.0,
+    0.0
+  ],
+  "RECAS-NAPOLI": [
+    0.0,
+    0.0
+  ],
+  "RO-01-ICI": [
+    0.0,
+    0.0
+  ],
+  "RO-02-NIPNE": [
+    0.0,
+    0.0
+  ],
+  "RO-03-UPB": [
+    0.0,
+    0.0
+  ],
+  "RO-07-NIPNE": [
+    0.0,
+    0.0
+  ],
+  "RO-09-UTCN": [
+    0.0,
+    0.0
+  ],
+  "RO-11-NIPNE": [
+    0.0,
+    0.0
+  ],
+  "RO-12-ICI": [
+    0.0,
+    0.0
+  ],
+  "RO-13-ISS": [
+    0.0,
+    0.0
+  ],
+  "RO-14-ITIM": [
+    0.0,
+    0.0
+  ],
+  "RO-15-NIPNE": [
+    0.0,
+    0.0
+  ],
+  "RO-16-UAIC": [
+    0.0,
+    0.0
+  ],
+  "ROC_Canada_SERVICES": [
+    0.0,
+    0.0
+  ],
+  "RRC-KI": [
+    0.0,
+    0.0
+  ],
+  "RRC-KI-T1": [
+    0.0,
+    0.0
+  ],
+  "RTUETF": [
+    0.0,
+    0.0
+  ],
+  "RU-ISA-CGTDC": [
+    0.0,
+    0.0
+  ],
+  "RU-Novosibirsk-BINP": [
+    0.0,
+    0.0
+  ],
+  "RU-Phys-SPbSU": [
+    0.0,
+    0.0
+  ],
+  "RU-Protvino-IHEP": [
+    0.0,
+    0.0
+  ],
+  "RU-SARFTI": [
+    0.0,
+    0.0
+  ],
+  "RU-SPbSU": [
+    0.0,
+    0.0
+  ],
+  "RWTH-Aachen": [
+    0.0,
+    0.0
+  ],
+  "RedIRIS": [
+    0.0,
+    0.0
+  ],
+  "RedIRIS_GILDA": [
+    0.0,
+    0.0
+  ],
+  "Ru-Troitsk-INR-LCG2": [
+    0.0,
+    0.0
+  ],
+  "SAMPA": [
+    0.0,
+    0.0
+  ],
+  "SARA-ASI": [
+    0.0,
+    0.0
+  ],
+  "SARA-LISA": [
+    0.0,
+    0.0
+  ],
+  "SARA-MATRIX": [
+    0.0,
+    0.0
+  ],
+  "SCAI": [
+    0.0,
+    0.0
+  ],
+  "SDU-LCG2": [
+    0.0,
+    0.0
+  ],
+  "SE-SNIC-T2": [
+    0.0,
+    0.0
+  ],
+  "SFU-LCG2": [
+    0.0,
+    0.0
+  ],
+  "SGAI-CSIC": [
+    0.0,
+    0.0
+  ],
+  "SISSA-Trieste": [
+    0.0,
+    0.0
+  ],
+  "SLING-Test": [
+    0.0,
+    0.0
+  ],
+  "SN-UCAD": [
+    0.0,
+    0.0
+  ],
+  "SNS-PISA": [
+    0.0,
+    0.0
+  ],
+  "SOLEIL": [
+    0.0,
+    0.0
+  ],
+  "SPACI-LECCE-IA64": [
+    0.0,
+    0.0
+  ],
+  "SPACI-NAPOLI-IA64": [
+    0.0,
+    0.0
+  ],
+  "SU-GRID": [
+    0.0,
+    0.0
+  ],
+  "SU-Protvino-IHEP": [
+    0.0,
+    0.0
+  ],
+  "SUPERCOMPUTO-UNAM": [
+    0.0,
+    0.0
+  ],
+  "SWITCH": [
+    0.0,
+    0.0
+  ],
+  "SZDG": [
+    0.0,
+    0.0
+  ],
+  "SZTAKI": [
+    0.0,
+    0.0
+  ],
+  "ScotGRID-Edinburgh": [
+    0.0,
+    0.0
+  ],
+  "SiGNET": [
+    0.0,
+    0.0
+  ],
+  "StratusLab": [
+    0.0,
+    0.0
+  ],
+  "T2-TH-ALICE-NSTDA": [
+    0.0,
+    0.0
+  ],
+  "T2-TH-CUNSTDA": [
+    0.0,
+    0.0
+  ],
+  "T2-TH-SUT": [
+    0.0,
+    0.0
+  ],
+  "T2_Estonia": [
+    0.0,
+    0.0
+  ],
+  "T3-TH-CHULA": [
+    0.0,
+    0.0
+  ],
+  "T3_CH_PSI": [
+    0.0,
+    0.0
+  ],
+  "T3_HU_Debrecen": [
+    0.0,
+    0.0
+  ],
+  "T3_IN_TIFRCloud": [
+    0.0,
+    0.0
+  ],
+  "TASK": [
+    0.0,
+    0.0
+  ],
+  "TAU-LCG2": [
+    0.0,
+    0.0
+  ],
+  "TECHNION-HEP": [
+    0.0,
+    0.0
+  ],
+  "TECHNION-LCG2": [
+    0.0,
+    0.0
+  ],
+  "TH-HAII": [
+    0.0,
+    0.0
+  ],
+  "TH-NECTEC-LSR": [
+    0.0,
+    0.0
+  ],
+  "TH-SUT-NPP": [
+    0.0,
+    0.0
+  ],
+  "TIFR-CMS": [
+    0.0,
+    0.0
+  ],
+  "TIFR-LCG2": [
+    0.0,
+    0.0
+  ],
+  "TOKYO-LCG2": [
+    0.0,
+    0.0
+  ],
+  "TORONTO-LCG2": [
+    0.0,
+    0.0
+  ],
+  "TR-01-ULAKBIM": [
+    0.0,
+    0.0
+  ],
+  "TR-02-ATATURK": [
+    0.0,
+    0.0
+  ],
+  "TR-03-METU": [
+    0.0,
+    0.0
+  ],
+  "TR-04-ERCIYES": [
+    0.0,
+    0.0
+  ],
+  "TR-05-BOUN": [
+    0.0,
+    0.0
+  ],
+  "TR-08-CUKUROVA": [
+    0.0,
+    0.0
+  ],
+  "TR-09-ITU": [
+    0.0,
+    0.0
+  ],
+  "TR-10-ULAKBIM": [
+    0.0,
+    0.0
+  ],
+  "TR-FC1-ULAKBIM": [
+    0.0,
+    0.0
+  ],
+  "TR-FC2-ULAKBIM": [
+    0.0,
+    0.0
+  ],
+  "TRIGRID-INFN-CATANIA": [
+    0.0,
+    0.0
+  ],
+  "TRIUMF-LCG2": [
+    49.2463,
+    -123.1162
+  ],
+  "TU-Kosice": [
+    48.7164,
+    21.2611
+  ],
+  "TUDresden-ZIH": [
+    0.0,
+    0.0
+  ],
+  "TW-ASGC-CERT": [
+    0.0,
+    0.0
+  ],
+  "TW-DiCOS": [
+    0.0,
+    0.0
+  ],
+  "TW-EMI-PPS": [
+    0.0,
+    0.0
+  ],
+  "TW-FTT": [
+    0.0,
+    0.0
+  ],
+  "TW-NCHC": [
+    0.0,
+    0.0
+  ],
+  "TW-NCHU-AAC-01": [
+    0.0,
+    0.0
+  ],
+  "TW-NCUHEP": [
+    0.0,
+    0.0
+  ],
+  "TW-NIU-EECS-01": [
+    0.0,
+    0.0
+  ],
+  "TW-NTCU-HPC-01": [
+    0.0,
+    0.0
+  ],
+  "TW-NTU-CC": [
+    0.0,
+    0.0
+  ],
+  "TW-NTU-HEP": [
+    0.0,
+    0.0
+  ],
+  "TW-eScience": [
+    0.0,
+    0.0
+  ],
+  "TW_TIDC_T3": [
+    0.0,
+    0.0
+  ],
+  "Taiwan-IPAS-LCG2": [
+    0.0,
+    0.0
+  ],
+  "Taiwan-LCG2": [
+    0.0,
+    0.0
+  ],
+  "Taiwan-NCUCC-LCG2": [
+    0.0,
+    0.0
+  ],
+  "Turing": [
+    0.0,
+    0.0
+  ],
+  "UA-BITP": [
+    0.0,
+    0.0
+  ],
+  "UA-IFBG": [
+    0.0,
+    0.0
+  ],
+  "UA-IMBG": [
+    0.0,
+    0.0
+  ],
+  "UA-IRE": [
+    0.0,
+    0.0
+  ],
+  "UA-ISMA": [
+    0.0,
+    0.0
+  ],
+  "UA-KNU": [
+    0.0,
+    0.0
+  ],
+  "UA-MHI": [
+    0.0,
+    0.0
+  ],
+  "UA-NSCMBR": [
+    0.0,
+    0.0
+  ],
+  "UA-PIMEE": [
+    0.0,
+    0.0
+  ],
+  "UAM-LCG2": [
+    0.0,
+    0.0
+  ],
+  "UA_BITP_ARC": [
+    0.0,
+    0.0
+  ],
+  "UA_ICMP_ARC": [
+    0.0,
+    0.0
+  ],
+  "UA_ICYB_ARC": [
+    0.0,
+    0.0
+  ],
+  "UA_ILTPE_ARC": [
+    0.0,
+    0.0
+  ],
+  "UA_ILTPE_BITP": [
+    0.0,
+    0.0
+  ],
+  "UB-LCG2": [
+    0.0,
+    0.0
+  ],
+  "UCL-CCC": [
+    0.0,
+    0.0
+  ],
+  "UCM": [
+    0.0,
+    0.0
+  ],
+  "UFL-LCG2": [
+    0.0,
+    0.0
+  ],
+  "UFRJ-IF": [
+    0.0,
+    0.0
+  ],
+  "UIOWA-LCG2": [
+    0.0,
+    0.0
+  ],
+  "UKI-GridPP-Cloud-IC": [
+    0.0,
+    0.0
+  ],
+  "UKI-LT2-Brunel": [
+    0.0,
+    0.0
+  ],
+  "UKI-LT2-IC-HEP": [
+    0.0,
+    0.0
+  ],
+  "UKI-LT2-IC-HEP-PPS": [
+    0.0,
+    0.0
+  ],
+  "UKI-LT2-IC-LeSC": [
+    0.0,
+    0.0
+  ],
+  "UKI-LT2-QMUL": [
+    0.0,
+    0.0
+  ],
+  "UKI-LT2-RHUL": [
+    0.0,
+    0.0
+  ],
+  "UKI-LT2-UCL-CENTRAL": [
+    0.0,
+    0.0
+  ],
+  "UKI-LT2-UCL-HEP": [
+    0.0,
+    0.0
+  ],
+  "UKI-NORTHGRID-LANCS-HEP": [
+    0.0,
+    0.0
+  ],
+  "UKI-NORTHGRID-LIV-HEP": [
+    0.0,
+    0.0
+  ],
+  "UKI-NORTHGRID-MAN-HEP": [
+    0.0,
+    0.0
+  ],
+  "UKI-NORTHGRID-SHEF-HEP": [
+    0.0,
+    0.0
+  ],
+  "UKI-SCOTGRID-DURHAM": [
+    0.0,
+    0.0
+  ],
+  "UKI-SCOTGRID-ECDF": [
+    0.0,
+    0.0
+  ],
+  "UKI-SCOTGRID-GLASGOW": [
+    0.0,
+    0.0
+  ],
+  "UKI-SOUTHGRID-BHAM-HEP": [
+    0.0,
+    0.0
+  ],
+  "UKI-SOUTHGRID-BHAM-PPS": [
+    0.0,
+    0.0
+  ],
+  "UKI-SOUTHGRID-BRIS-HEP": [
+    0.0,
+    0.0
+  ],
+  "UKI-SOUTHGRID-CAM-HEP": [
+    0.0,
+    0.0
+  ],
+  "UKI-SOUTHGRID-OX-HEP": [
+    0.0,
+    0.0
+  ],
+  "UKI-SOUTHGRID-RALPP": [
+    0.0,
+    0.0
+  ],
+  "UKI-SOUTHGRID-RDG": [
+    0.0,
+    0.0
+  ],
+  "UKI-SOUTHGRID-SUSX": [
+    0.0,
+    0.0
+  ],
+  "UKI-ScotGrid-Gla-PPS": [
+    0.0,
+    0.0
+  ],
+  "ULA-MERIDA": [
+    0.0,
+    0.0
+  ],
+  "UMB-BB": [
+    0.0,
+    0.0
+  ],
+  "UMinho-CP": [
+    0.0,
+    0.0
+  ],
+  "UNI-BONN": [
+    0.0,
+    0.0
+  ],
+  "UNI-DORTMUND": [
+    0.0,
+    0.0
+  ],
+  "UNI-FREIBURG": [
+    0.0,
+    0.0
+  ],
+  "UNI-KARLSRUHE": [
+    0.0,
+    0.0
+  ],
+  "UNI-PERUGIA": [
+    0.0,
+    0.0
+  ],
+  "UNI-SIEGEN-HEP": [
+    0.0,
+    0.0
+  ],
+  "UNIANDES": [
+    0.0,
+    0.0
+  ],
+  "UNIBE-ID": [
+    0.0,
+    0.0
+  ],
+  "UNIBE-LHEP": [
+    0.0,
+    0.0
+  ],
+  "UNICAN": [
+    0.0,
+    0.0
+  ],
+  "UNICAN-IMATH": [
+    0.0,
+    0.0
+  ],
+  "UNICPH-NBI": [
+    0.0,
+    0.0
+  ],
+  "UNIGE-DPNC": [
+    0.0,
+    0.0
+  ],
+  "UNINA-EGEE": [
+    0.0,
+    0.0
+  ],
+  "UNIV-LILLE": [
+    0.0,
+    0.0
+  ],
+  "UOGRID": [
+    0.0,
+    0.0
+  ],
+  "UPJS-Kosice": [
+    0.0,
+    0.0
+  ],
+  "UPV-GRyCAP": [
+    0.0,
+    0.0
+  ],
+  "UPorto": [
+    0.0,
+    0.0
+  ],
+  "USC-LCG2": [
+    0.0,
+    0.0
+  ],
+  "USTC-T3": [
+    0.0,
+    0.0
+  ],
+  "UT_CS": [
+    0.0,
+    0.0
+  ],
+  "UZH": [
+    0.0,
+    0.0
+  ],
+  "UiB": [
+    0.0,
+    0.0
+  ],
+  "Umontreal-LCG2": [
+    0.0,
+    0.0
+  ],
+  "VDU-IF-LCG2": [
+    0.0,
+    0.0
+  ],
+  "VGTU-CREAM": [
+    0.0,
+    0.0
+  ],
+  "VGTU-TEST-gLite": [
+    0.0,
+    0.0
+  ],
+  "VGTU-gLite": [
+    0.0,
+    0.0
+  ],
+  "VICTORIA-LCG2": [
+    0.0,
+    0.0
+  ],
+  "VN-HPCC-HUT-HN": [
+    0.0,
+    0.0
+  ],
+  "VN-IFI": [
+    0.0,
+    0.0
+  ],
+  "VN-IFI-PPS": [
+    0.0,
+    0.0
+  ],
+  "VN-IOIT-DCNET": [
+    0.0,
+    0.0
+  ],
+  "VN-IOIT-DFCK": [
+    0.0,
+    0.0
+  ],
+  "VN-IOIT-HN": [
+    0.0,
+    0.0
+  ],
+  "VN-IOIT-KEYLAB": [
+    0.0,
+    0.0
+  ],
+  "VU-MIF-LCG2": [
+    0.0,
+    0.0
+  ],
+  "VU-MIF-TEST": [
+    0.0,
+    0.0
+  ],
+  "VUHPC1": [
+    0.0,
+    0.0
+  ],
+  "WALTON-CLOUD": [
+    0.0,
+    0.0
+  ],
+  "WARSAW-EGEE": [
+    0.0,
+    0.0
+  ],
+  "WCSS": [
+    0.0,
+    0.0
+  ],
+  "WCSS-PPS": [
+    0.0,
+    0.0
+  ],
+  "WCSS64": [
+    0.0,
+    0.0
+  ],
+  "WEIZMANN-LCG2": [
+    0.0,
+    0.0
+  ],
+  "WUT": [
+    0.0,
+    0.0
+  ],
+  "Wuhan": [
+    0.0,
+    0.0
+  ],
+  "Wuhan-t": [
+    0.0,
+    0.0
+  ],
+  "YerPhI": [
+    0.0,
+    0.0
+  ],
+  "ZA-CHPC": [
+    0.0,
+    0.0
+  ],
+  "ZA-MERAKA": [
+    0.0,
+    0.0
+  ],
+  "ZA-UCT-ICTS": [
+    0.0,
+    0.0
+  ],
+  "ZA-UFS": [
+    0.0,
+    0.0
+  ],
+  "ZA-UJ": [
+    0.0,
+    0.0
+  ],
+  "ZA-WITS-CORE": [
+    0.0,
+    0.0
+  ],
+  "ZIB": [
+    0.0,
+    0.0
+  ],
+  "e-ca-iaa": [
+    0.0,
+    0.0
+  ],
+  "egee.fesb.hr": [
+    0.0,
+    0.0
+  ],
+  "egee.irb.hr": [
+    0.0,
+    0.0
+  ],
+  "egee.man.poznan.pl": [
+    0.0,
+    0.0
+  ],
+  "egee.srce.hr": [
+    0.0,
+    0.0
+  ],
+  "fedcloud.srce.hr": [
+    0.0,
+    0.0
+  ],
+  "hp-bristol": [
+    0.0,
+    0.0
+  ],
+  "ifae": [
+    0.0,
+    0.0
+  ],
+  "mainz": [
+    0.0,
+    0.0
+  ],
+  "mainzgrid": [
+    0.0,
+    0.0
+  ],
+  "manchester-ngs2": [
+    0.0,
+    0.0
+  ],
+  "ngi-ceta-ciemat": [
+    0.0,
+    0.0
+  ],
+  "oxford-ngs2": [
+    0.0,
+    0.0
+  ],
+  "pic": [
+    0.0,
+    0.0
+  ],
+  "prague_cesnet_lcg2": [
+    0.0,
+    0.0
+  ],
+  "prague_cesnet_lcg2_cert": [
+    0.0,
+    0.0
+  ],
+  "prague_cesnet_pps": [
+    0.0,
+    0.0
+  ],
+  "prague_cesnet_pt": [
+    0.0,
+    0.0
+  ],
+  "praguelcg2": [
+    0.0,
+    0.0
+  ],
+  "preprod.nikhef.nl": [
+    0.0,
+    0.0
+  ],
+  "ral-cloud": [
+    0.0,
+    0.0
+  ],
+  "ral-ngs2": [
+    0.0,
+    0.0
+  ],
+  "ru-Chernogolovka-IPCP-LCG2": [
+    0.0,
+    0.0
+  ],
+  "ru-Moscow-FIAN-LCG2": [
+    0.0,
+    0.0
+  ],
+  "ru-Moscow-MEPHI-LCG2": [
+    0.0,
+    0.0
+  ],
+  "ru-Moscow-SINP-LCG2": [
+    0.0,
+    0.0
+  ],
+  "ru-Moscow-SINP-T3": [
+    0.0,
+    0.0
+  ],
+  "ru-PNPI": [
+    0.0,
+    0.0
+  ],
+  "scotgrid-gla": [
+    0.0,
+    0.0
+  ],
+  "wuppertalprod": [
+    0.0,
+    0.0
+  ]
 }
