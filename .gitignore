@@ -14,3 +14,4 @@ pyvenv.cfg
 lib/
 lib64/
 __pycache__/
+site_coords.json

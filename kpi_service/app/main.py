@@ -24,11 +24,11 @@ app = FastAPI(
     title="GreenDIGIT KPI Service",
     description=APP_DESCRIPTION,
     swagger_ui_parameters={"persistAuthorization": True},
-    root_path="/gd-ci-api"
+    root_path="/gd-kpi-api"
 )
 
 # --- Configuration & Environment ---
-WATTNET_BASE = os.getenv("WATTNET_BASE") or os.getenv("WATTPRINT_BASE", "https://api.wattnet.eu")
+WATTNET_BASE = os.getenv("WATTNET_BASE") or os.getenv("WATTPRINT_BASE", "httpsm://api.wattnet.eu")
 WATTNET_TOKEN = os.getenv("WATTNET_TOKEN") or os.getenv("WATTPRINT_TOKEN")
 AUTH_VERIFY_URL = os.getenv("AUTH_VERIFY_URL", "https://mc-a4.lab.uvalight.net/gd-cim-api/verify_token")
 
@@ -38,6 +38,7 @@ RETAIN_COLL      = os.getenv("RETAIN_COLL", "pending_ci")
 
 CNR_SQL_FORWARD_URL = os.getenv("CNR_SQL_FORWARD_URL", "http://sql-adapter:8033/cnr-sql-service")
 PUE_DEFAULT = os.getenv("PUE_DEFAULT", "1.7")
+KPI_API_BASE = os.getenv("KPI_API_BASE", "https://mc-a4.lab.uvalight.net/gd-kpi-api")
 
 SITES_PATH = os.environ.get("SITES_JSON", "/data/sites_latlngpue.json")
 SITES_MAP: dict[str, dict] = {}  # site_name -> {lat, lon, pue}
@@ -244,6 +245,16 @@ def _clean_bearer_token(raw: Optional[str]) -> Optional[str]:
         token = token.split(" ", 1)[1].strip()
     return token or None
 
+def _client_ip(request: Request) -> str:
+    """Return best-effort client IP considering common proxy headers."""
+    fwd = request.headers.get("x-forwarded-for")
+    if fwd:
+        return fwd.split(",")[0].strip()
+    real = request.headers.get("x-real-ip")
+    if real:
+        return real.strip()
+    return request.client.host if request.client else "unknown"
+
 def _verify_request_token(raw_auth_header: Optional[str]) -> None:
     """Verify caller JWT against the Auth server."""
     if not raw_auth_header:
@@ -263,6 +274,7 @@ def _verify_request_token(raw_auth_header: Optional[str]) -> None:
         print(f"[auth] AuthServer verification status is: {resp.status_code}", flush=True)
 
 def wattnet_headers(aggregate: Optional[bool] = None) -> Dict[str, str]:
+    print(WATTNET_TOKEN)
     auth_token = _clean_bearer_token(WATTNET_TOKEN)
     fp = f"{auth_token[:6]}...{auth_token[-6:]}" if auth_token else "<none>"
     print(f"[wattnet] using token {fp}", flush=True)
@@ -272,6 +284,22 @@ def wattnet_headers(aggregate: Optional[bool] = None) -> Dict[str, str]:
     if aggregate is not None:
         headers["aggregate"] = str(aggregate).lower()
     return headers
+
+def _wattnet_error_detail(resp: requests.Response) -> str:
+    try:
+        data = resp.json()
+        if isinstance(data, dict):
+            for key in ("detail", "message", "error"):
+                val = data.get(key)
+                if isinstance(val, str) and val.strip():
+                    return val.strip()
+            return json.dumps(data)[:300]
+        if isinstance(data, list) and data:
+            return str(data[0])[:300]
+    except Exception:
+        pass
+    body = resp.text[:300] if hasattr(resp, "text") else ""
+    return body or f"WattNet responded with status {resp.status_code}"
 
 def wattnet_fetch(lat: float, lon: float, start: datetime, end: datetime, aggregate: bool = False, extra_params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     url = f"{WATTNET_BASE}/v1/footprints"
@@ -313,6 +341,8 @@ def wattnet_fetch(lat: float, lon: float, start: datetime, end: datetime, aggreg
     r = sess.get(url, params=params, headers=headers, timeout=20)
     if not r.ok:
         print("[wattnet_fetch] status:", r.status_code, "body:", r.text[:300], flush=True)
+        detail = _wattnet_error_detail(r)
+        raise HTTPException(status_code=r.status_code, detail=detail)
     r.raise_for_status()
     try:
         data = r.json()
@@ -366,11 +396,15 @@ class CIResponse(BaseModel):
     valid: bool
 
 class MetricsEnvelope(BaseModel):
+    model_config = ConfigDict(extra="allow")
     site: Optional[str] = None
     duration_s: Optional[float] = None  # Changed to float to be safe
     sites: Dict[str, Any]
     fact_site_event: Dict[str, Any]
-    detail_cloud: Dict[str, Any]
+    detail_cloud: Optional[Dict[str, Any]] = None
+    detail_grid: Optional[Dict[str, Any]] = None
+    detail_network: Optional[Dict[str, Any]] = None
+    detail_table: Optional[str] = None
 
     # Optional overrides
     lat: Optional[float] = None
@@ -495,6 +529,9 @@ def _compute_pue_response(req: PUERequest) -> PUEResponse:
 
 @app.post("/ci", response_model=CIResponse)
 def post_ci(payload: CIRequest, request: Request):
+    client_ip = _client_ip(request)
+    print(f"[ci] request from {client_ip}", flush=True)
+
     # Allow query parameters to fill missing fields (mirrors WattNet-style calls)
     q = request.query_params
     qs_start = _parse_dt_param(q.get("start"), "start")
@@ -602,21 +639,66 @@ def _compute_ci_response(req: CIRequest, wattnet_params: Optional[Dict[str, Any]
         valid=bool(payload.get("valid", False))
     )
 
+# --- External CI API caller (for partner enrichment) ---
+
+def _call_ci_api(
+    lat: float,
+    lon: float,
+    start: datetime,
+    end: datetime,
+    pue: float,
+    energy_wh: Optional[float] = None,
+    auth_header: Optional[str] = None,
+    extra_params: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    url = f"{KPI_API_BASE.rstrip('/')}/ci"
+    body: Dict[str, Any] = {
+        "lat": lat,
+        "lon": lon,
+        "pue": pue,
+        "start": to_iso_z(start),
+        "end": to_iso_z(end),
+    }
+    if energy_wh is not None:
+        body["energy_wh"] = energy_wh
+    if extra_params:
+        body.update(extra_params)
+
+    headers = {"Content-Type": "application/json"}
+    if auth_header:
+        headers["Authorization"] = auth_header
+
+    r = sess.post(url, json=body, headers=headers, timeout=30)
+    if not r.ok:
+        print(f"[ci_api] status={r.status_code} body={r.text[:400]}", flush=True)
+    r.raise_for_status()
+    return r.json()
+
 # --- MAIN TRANSFORMATION LOGIC ---
 
 def _infer_times(payload: MetricsEnvelope) -> tuple[datetime, datetime, datetime]:
     fse = payload.fact_site_event
     # Handle timestamps safely
-    start_str = fse.get("startexectime") or fse.get("event_start_timestamp")
-    stop_str = fse.get("stopexectime") or fse.get("event_end_timestamp")
-    
-    if not start_str or not stop_str:
+    start_raw = fse.get("startexectime") or fse.get("event_start_timestamp") or fse.get("event_start_time")
+    stop_raw = fse.get("stopexectime") or fse.get("event_end_timestamp") or fse.get("event_end_times")
+
+    def _coerce_dt(value: Any) -> Optional[datetime]:
+        if value is None:
+            return None
+        if isinstance(value, datetime):
+            return _ensure_utc(value)
+        try:
+            return _ensure_utc(datetime.fromisoformat(str(value).replace("Z", "+00:00")))
+        except Exception:
+            return None
+
+    start = _coerce_dt(start_raw)
+    stop = _coerce_dt(stop_raw)
+
+    if not start or not stop:
         # Fallback to now if missing
         now = datetime.now(timezone.utc)
         return now, now, now
-
-    start = datetime.fromisoformat(start_str.replace("Z", "+00:00"))
-    stop = datetime.fromisoformat(stop_str.replace("Z", "+00:00"))
     
     # Calculate middle point or use stop time for CI lookup
     when = stop
@@ -630,6 +712,9 @@ def transform_and_forward(request: Request, payload: MetricsEnvelope = Body(...)
     Receives MetricsEnvelope, calculates PUE/CI/CFP, injects them into fact_site_event,
     and forwards to CNR SQL Adapter.
     """
+    client_ip = _client_ip(request)
+    print(f"[transform] request from {client_ip}", flush=True)
+
     # _verify_request_token(request.headers.get("authorization"))
     # 1. Resolve Site and Location
     site_name = payload.site or payload.fact_site_event.get("site")
@@ -676,31 +761,64 @@ def transform_and_forward(request: Request, payload: MetricsEnvelope = Body(...)
         if val is not None:
             energy_wh = float(val)
 
-    # 4. Fetch Carbon Intensity (CI)
+    # 3b. Preserve partner-provided CI/CFP before overriding
+    partner_ci = fse.get("CI_g") or fse.get("CIg")
+    partner_cfp = fse.get("CFP_g") or fse.get("CFPg")
+    if partner_ci is not None:
+        fse["CI_site_g"] = partner_ci
+    if partner_cfp is not None:
+        fse["CFP_site_g"] = partner_cfp
+
+    # 4. Fetch Carbon Intensity (CI) via CI API (preferred), fallback to WattNet
     start_exec, stop_exec, when = _infer_times(payload)
     
     # Define window for WattNet (1 hour before to 2 hours after event)
     ci_start = when - timedelta(hours=1)
     ci_end = when + timedelta(hours=2)
     
+    ci_g: Optional[float] = None
+    cfp_g: Optional[float] = None
+
+    # Preferred: external CI API (also gives CFP if energy provided)
+    auth_header = request.headers.get("authorization")
     try:
-        wp = wattnet_fetch(payload.lat, payload.lon, ci_start, ci_end)
-        ci_g = float(wp.get("value", 0.0))
+        ci_resp = _call_ci_api(
+            payload.lat,
+            payload.lon,
+            ci_start,
+            ci_end,
+            resolved_pue,
+            energy_wh=energy_wh,
+            auth_header=auth_header,
+        )
+        ci_val = ci_resp.get("ci_gco2_per_kwh")
+        if isinstance(ci_val, (int, float)):
+            ci_g = float(ci_val)
+        cfp_val = ci_resp.get("cfp_g")
+        if isinstance(cfp_val, (int, float)):
+            cfp_g = float(cfp_val)
     except Exception as e:
-        print(f"[ci] Failed to fetch CI: {e}", flush=True)
-        ci_g = 0.0 # Default fallback or raise error? Usually better to fail safely for pipeline
+        print(f"[ci_api] Failed to fetch CI via API: {e}", flush=True)
+
+    # Fallback: WattNet direct
+    if ci_g is None:
+        try:
+            wp = wattnet_fetch(payload.lat, payload.lon, ci_start, ci_end)
+            ci_g = float(wp.get("value", 0.0))
+        except Exception as e:
+            print(f"[ci] Failed to fetch CI: {e}", flush=True)
+            ci_g = 0.0 # Default fallback or raise error? Usually better to fail safely for pipeline
 
     # 5. Calculate CFP (D4.1 Formula)
     # CFP_g = Energy(kWh) * PUE * CI(g/kWh)
-    cfp_g = 0.0
-    if energy_wh is not None:
+    if cfp_g is None and energy_wh is not None and ci_g is not None:
         energy_kwh = energy_wh / 1000.0
         cfp_g = energy_kwh * resolved_pue * ci_g
 
     # 6. Inject Values into Payload (fact_site_event)
     fse["PUE"] = resolved_pue
     fse["CI_g"] = ci_g
-    fse["CFP_g"] = round(cfp_g, 4)
+    fse["CFP_g"] = round(cfp_g, 4) if cfp_g is not None else None
     
     # Ensure Energy is consistent if we extracted it from elsewhere
     if energy_wh is not None and "energy_wh" not in fse:
