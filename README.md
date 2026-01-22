@@ -2,11 +2,6 @@
 
 FastAPI microservice that retrieves Location (lat/lon) from [GOC DB](https://goc.egi.eu), and **Carbon Intensity (CI)** from [wattprint](https://api.wattprint.eu/). It derives **Effective CI** and **Carbon Footprint (CFP)**. More KPIs to be included in the future.
 
-## Roadmap
-- [ ] Apply ICTF X502 certification to get Location and PUE from sites (GOC DB).
-- [ ] Implement dynamic calculation of the CI. For the moment we're using mock data (generated).
-- [ ] Include WUE, PUE, and other KPIs.
-
 ## How the calculation works
 
 $$

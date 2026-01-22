@@ -41,7 +41,10 @@ PUE_DEFAULT = os.getenv("PUE_DEFAULT", "1.7")
 KPI_API_BASE = os.getenv("KPI_API_BASE", "https://mc-a4.lab.uvalight.net/gd-kpi-api")
 
 SITES_PATH = os.environ.get("SITES_JSON", "/data/sites_latlngpue.json")
-SITES_MAP: dict[str, dict] = {}  # site_name -> {lat, lon, pue}
+SITES_CACHE_PATH = os.environ.get(
+    "SITES_CACHE_JSON",
+    os.path.join(os.path.dirname(SITES_PATH) or ".", "sites_cache.json"),
+)
 
 sess = requests.Session()
 
@@ -415,8 +418,36 @@ class MetricsEnvelope(BaseModel):
 
 # --- Sites Loading Logic (With Fix) ---
 
+def _write_sites_cache(sites_map: dict) -> None:
+    """Persist the current sites map to disk."""
+    try:
+        os.makedirs(os.path.dirname(SITES_CACHE_PATH) or ".", exist_ok=True)
+        with open(SITES_CACHE_PATH, "w", encoding="utf-8") as f:
+            json.dump(sites_map, f)
+        print(f"[sites] Cached {len(sites_map)} sites to {SITES_CACHE_PATH}", flush=True)
+    except Exception as e:
+        print(f"[sites] failed to write cache {SITES_CACHE_PATH}: {e}", flush=True)
+
+
+def _read_sites_cache() -> dict:
+    if os.path.isdir(SITES_CACHE_PATH):
+        print(f"[sites] WARNING: {SITES_CACHE_PATH} is a directory. Please check volume mapping.", flush=True)
+        return {}
+    if not os.path.exists(SITES_CACHE_PATH):
+        return {}
+    try:
+        with open(SITES_CACHE_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if isinstance(data, dict):
+            return data
+        print(f"[sites] Cache at {SITES_CACHE_PATH} is not a dict; ignoring.", flush=True)
+    except Exception as e:
+        print(f"[sites] failed to read cache {SITES_CACHE_PATH}: {e}", flush=True)
+    return {}
+
+
 def _load_sites_map() -> dict:
-    """Load array JSON into a dict keyed by site_name."""
+    """Load array JSON into a dict keyed by site_name and cache it to disk."""
     # FIX: Check if directory exists instead of file to avoid crash
     if os.path.isdir(SITES_PATH):
         print(f"[sites] WARNING: {SITES_PATH} is a directory. Please check volume mapping.", flush=True)
@@ -441,26 +472,33 @@ def _load_sites_map() -> dict:
                     "country": x.get("country"),
                     "roc": x.get("roc"),
                 }
+        _write_sites_cache(m)
         return m
     except Exception as e:
         print(f"[sites] failed to load {SITES_PATH}: {e}", flush=True)
         return {}
 
+
+def _prime_sites_cache() -> None:
+    sites_map = _load_sites_map()
+    print(f"[sites] Loaded {len(sites_map)} sites.", flush=True)
+
+
 # Load on startup
-SITES_MAP = _load_sites_map()
-print(f"[sites] Loaded {len(SITES_MAP)} sites.", flush=True)
+_prime_sites_cache()
+
 
 def _reload_sites_map_if_needed(site_name: str) -> Optional[dict]:
-    site = SITES_MAP.get(site_name)
+    cached_map = _read_sites_cache()
+    site = cached_map.get(site_name)
     if site:
         return site
     try:
         new_map = _load_sites_map()
-        SITES_MAP.update(new_map)
     except Exception as exc:
         print(f"[sites] reload failed: {exc}", flush=True)
         return None
-    return SITES_MAP.get(site_name)
+    return new_map.get(site_name)
 
 @app.exception_handler(RequestValidationError)
 async def debug_validation_exception_handler(request: Request, exc: RequestValidationError):
