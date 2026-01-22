@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 import json
 import os
 import sys
@@ -39,12 +40,14 @@ RETAIN_COLL      = os.getenv("RETAIN_COLL", "pending_ci")
 CNR_SQL_FORWARD_URL = os.getenv("CNR_SQL_FORWARD_URL", "http://sql-adapter:8033/cnr-sql-service")
 PUE_DEFAULT = os.getenv("PUE_DEFAULT", "1.7")
 KPI_API_BASE = os.getenv("KPI_API_BASE", "https://mc-a4.lab.uvalight.net/gd-kpi-api")
+PUE_REFRESH_HOURS = os.getenv("PUE_REFRESH_HOURS", "3")
 
 SITES_PATH = os.environ.get("SITES_JSON", "/data/sites_latlngpue.json")
 SITES_CACHE_PATH = os.environ.get(
     "SITES_CACHE_JSON",
     os.path.join(os.path.dirname(SITES_PATH) or ".", "sites_cache.json"),
 )
+SITES_REFRESH_TASK: Optional[asyncio.Task] = None
 
 sess = requests.Session()
 
@@ -499,6 +502,51 @@ def _reload_sites_map_if_needed(site_name: str) -> Optional[dict]:
         print(f"[sites] reload failed: {exc}", flush=True)
         return None
     return new_map.get(site_name)
+
+
+def _refresh_interval_seconds() -> Optional[float]:
+    raw = PUE_REFRESH_HOURS
+    try:
+        hours = float(raw)
+    except (TypeError, ValueError):
+        print(f\"[sites] Invalid PUE_REFRESH_HOURS={raw!r}; auto refresh disabled.\", flush=True)
+        return None
+    if hours <= 0:
+        print(f\"[sites] PUE_REFRESH_HOURS={hours} disables auto refresh (must be > 0).\", flush=True)
+        return None
+    return hours * 3600.0
+
+
+async def _sites_refresh_loop(interval_seconds: float) -> None:
+    while True:
+        try:
+            _load_sites_map()
+        except Exception as exc:
+            print(f\"[sites] background refresh failed: {exc}\", flush=True)
+        await asyncio.sleep(interval_seconds)
+
+
+@app.on_event(\"startup\")
+async def _start_sites_refresh() -> None:
+    interval = _refresh_interval_seconds()
+    if interval is None:
+        return
+    global SITES_REFRESH_TASK
+    SITES_REFRESH_TASK = asyncio.create_task(_sites_refresh_loop(interval))
+    print(f\"[sites] Auto refresh scheduled every {interval/3600:.2f} hours.\", flush=True)
+
+
+@app.on_event(\"shutdown\")
+async def _stop_sites_refresh() -> None:
+    global SITES_REFRESH_TASK
+    task = SITES_REFRESH_TASK
+    if task is None:
+        return
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
 
 @app.exception_handler(RequestValidationError)
 async def debug_validation_exception_handler(request: Request, exc: RequestValidationError):
