@@ -25,7 +25,7 @@ app = FastAPI(
     title="GreenDIGIT KPI Service",
     description=APP_DESCRIPTION,
     swagger_ui_parameters={"persistAuthorization": True},
-    root_path="/gd-kpi-api"
+    root_path="/gd-ci-api"
 )
 
 # --- Configuration & Environment ---
@@ -509,10 +509,10 @@ def _refresh_interval_seconds() -> Optional[float]:
     try:
         hours = float(raw)
     except (TypeError, ValueError):
-        print(f\"[sites] Invalid PUE_REFRESH_HOURS={raw!r}; auto refresh disabled.\", flush=True)
+        print(f"[sites] Invalid PUE_REFRESH_HOURS={raw!r}; auto refresh disabled.", flush=True)
         return None
     if hours <= 0:
-        print(f\"[sites] PUE_REFRESH_HOURS={hours} disables auto refresh (must be > 0).\", flush=True)
+        print(f"[sites] PUE_REFRESH_HOURS={hours} disables auto refresh (must be > 0).", flush=True)
         return None
     return hours * 3600.0
 
@@ -522,21 +522,21 @@ async def _sites_refresh_loop(interval_seconds: float) -> None:
         try:
             _load_sites_map()
         except Exception as exc:
-            print(f\"[sites] background refresh failed: {exc}\", flush=True)
+            print(f"[sites] background refresh failed: {exc}", flush=True)
         await asyncio.sleep(interval_seconds)
 
 
-@app.on_event(\"startup\")
+@app.on_event("startup")
 async def _start_sites_refresh() -> None:
     interval = _refresh_interval_seconds()
     if interval is None:
         return
     global SITES_REFRESH_TASK
     SITES_REFRESH_TASK = asyncio.create_task(_sites_refresh_loop(interval))
-    print(f\"[sites] Auto refresh scheduled every {interval/3600:.2f} hours.\", flush=True)
+    print(f"[sites] Auto refresh scheduled every {interval/3600:.2f} hours.", flush=True)
 
 
-@app.on_event(\"shutdown\")
+@app.on_event("shutdown")
 async def _stop_sites_refresh() -> None:
     global SITES_REFRESH_TASK
     task = SITES_REFRESH_TASK

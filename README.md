@@ -32,8 +32,6 @@ greendigit-cigrid/
 └─ README.md
 ```
 
-## Data prerequisites (GOC DB → Sites catalogue)
-
 ### Data prerequisites (GOC DB → Sites catalogue)
 
 This service expects a sites catalogue with coordinates (and optional PUE), typically produced by two helper services:
@@ -101,7 +99,10 @@ curl -s -X POST http://localhost:8111/ci   -H "Authorization: Bearer $TOKEN"   -
 
 **Curl**
 ```bash
-curl -s -X POST http://localhost:8111/pue   -H "Authorization: Bearer $TOKEN"   -H "Content-Type: application/json"   -d '{"site_name":"CERN-PROD"}'
+curl -s -X POST http://localhost:8111/pue \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"site_name":"CERN-PROD"}'
 ```
 
 ### `/transform-and-forward` — inject KPIs into `fact_site_event` and forward to SQL adapter
@@ -111,7 +112,7 @@ curl -s -X POST http://localhost:8111/pue   -H "Authorization: Bearer $TOKEN"   
 ### Auth
 All protected endpoints require:
 ```
-Authorization: Bearer <jwt>
+-H "Authorization: Bearer <JWT_TOKEN>"
 ```
 
 ### Notes
