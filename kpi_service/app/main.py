@@ -6,14 +6,16 @@ import sys
 import requests
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
-from fastapi import Body, FastAPI, HTTPException, Request
+from fastapi import Body, FastAPI, HTTPException, Request, APIRouter
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import AliasChoices, BaseModel, Field, ConfigDict
 from typing import Any, Dict, Optional
 from pymongo import MongoClient
 
 # Volume Version
+
+API_PREFIX = "/v1"
 
 APP_DESCRIPTION = (
     "Service providing GreenDIGIT KPIs. It retrieves location information from "
@@ -25,13 +27,22 @@ app = FastAPI(
     title="GreenDIGIT KPI Service",
     description=APP_DESCRIPTION,
     swagger_ui_parameters={"persistAuthorization": True},
-    root_path="/gd-ci-api"
+    root_path="/gd-kpi-api",
+    docs_url=f"{API_PREFIX}/docs",
+    openapi_url=f"{API_PREFIX}/openapi.json",
 )
+router = APIRouter(prefix=API_PREFIX)
+
+@app.get("/", include_in_schema=False)
+def redirect_to_docs():
+    """Convenience redirect to the versioned docs."""
+    return RedirectResponse(url=f"{API_PREFIX}/docs")
 
 # --- Configuration & Environment ---
+HOST_SERVER = "https://greendigit-cim.sztaki.hu"
 WATTNET_BASE = os.getenv("WATTNET_BASE") or os.getenv("WATTPRINT_BASE", "httpsm://api.wattnet.eu")
 WATTNET_TOKEN = os.getenv("WATTNET_TOKEN") or os.getenv("WATTPRINT_TOKEN")
-AUTH_VERIFY_URL = os.getenv("AUTH_VERIFY_URL", "https://mc-a4.lab.uvalight.net/gd-cim-api/verify_token")
+AUTH_VERIFY_URL = os.getenv("AUTH_VERIFY_URL", f"{HOST_SERVER}/gd-kpi-api/v1/verify-token")
 
 RETAIN_MONGO_URI = os.getenv("RETAIN_MONGO_URI")
 RETAIN_DB_NAME   = os.getenv("RETAIN_DB_NAME", "ci-retainment-db")
@@ -39,7 +50,8 @@ RETAIN_COLL      = os.getenv("RETAIN_COLL", "pending_ci")
 
 CNR_SQL_FORWARD_URL = os.getenv("CNR_SQL_FORWARD_URL", "http://sql-adapter:8033/cnr-sql-service")
 PUE_DEFAULT = os.getenv("PUE_DEFAULT", "1.7")
-KPI_API_BASE = os.getenv("KPI_API_BASE", "https://mc-a4.lab.uvalight.net/gd-kpi-api")
+CI_API_BASE = os.getenv("CI_API_BASE", f"{HOST_SERVER}/gd-kpi-api/v1")
+
 PUE_REFRESH_HOURS = os.getenv("PUE_REFRESH_HOURS", "3")
 
 SITES_PATH = os.environ.get("SITES_JSON", "/data/sites_latlngpue.json")
@@ -568,7 +580,7 @@ async def debug_validation_exception_handler(request: Request, exc: RequestValid
 
 # --- Endpoints ---
 
-@app.post("/pue", response_model=PUEResponse)
+@router.post("/pue", response_model=PUEResponse)
 def post_pue(payload: PUERequest):
     return _compute_pue_response(payload)
 
@@ -613,7 +625,7 @@ def _compute_pue_response(req: PUERequest) -> PUEResponse:
         source="+".join(sources)
     )
 
-@app.post("/ci", response_model=CIResponse)
+@router.post("/ci", response_model=CIResponse)
 def post_ci(payload: CIRequest, request: Request):
     client_ip = _client_ip(request)
     print(f"[ci] request from {client_ip}", flush=True)
@@ -737,7 +749,7 @@ def _call_ci_api(
     auth_header: Optional[str] = None,
     extra_params: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    url = f"{KPI_API_BASE.rstrip('/')}/ci"
+    url = f"{CI_API_BASE.rstrip('/')}/ci"
     body: Dict[str, Any] = {
         "lat": lat,
         "lon": lon,
@@ -792,7 +804,7 @@ def _infer_times(payload: MetricsEnvelope) -> tuple[datetime, datetime, datetime
     
     return start, stop, when
 
-@app.post("/transform-and-forward")
+@router.post("/transform-and-forward")
 def transform_and_forward(request: Request, payload: MetricsEnvelope = Body(...)):
     """
     Receives MetricsEnvelope, calculates PUE/CI/CFP, injects them into fact_site_event,
@@ -923,6 +935,8 @@ def transform_and_forward(request: Request, payload: MetricsEnvelope = Body(...)
     #     raise HTTPException(status_code=502, detail=f"Forwarding failed: {e}")
 
     return {"status": "ok", "forwarded_to": CNR_SQL_FORWARD_URL, "cfp_g": cfp_g}
+
+app.include_router(router)
 
 # --- CLI Logic (Preserved) ---
 
