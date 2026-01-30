@@ -42,7 +42,7 @@ def redirect_to_docs():
 HOST_SERVER = "https://greendigit-cim.sztaki.hu"
 WATTNET_BASE = os.getenv("WATTNET_BASE") or os.getenv("WATTPRINT_BASE", "httpsm://api.wattnet.eu")
 WATTNET_TOKEN = os.getenv("WATTNET_TOKEN") or os.getenv("WATTPRINT_TOKEN")
-AUTH_VERIFY_URL = os.getenv("AUTH_VERIFY_URL", f"{HOST_SERVER}/gd-kpi-api/v1/verify-token")
+AUTH_VERIFY_URL = os.getenv("AUTH_VERIFY_URL", f"{HOST_SERVER}/gd-cim-api/v1/verify-token")
 
 RETAIN_MONGO_URI = os.getenv("RETAIN_MONGO_URI")
 RETAIN_DB_NAME   = os.getenv("RETAIN_DB_NAME", "ci-retainment-db")
