@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import AliasChoices, BaseModel, Field, ConfigDict
 from typing import Any, Dict, Optional
 from pymongo import MongoClient
+from pathlib import Path
 
 # Volume Version
 
@@ -69,7 +70,13 @@ GOCDB_SCOPE = os.getenv("GOCDB_SCOPE")
 GOCDB_TOKEN = os.getenv("GOCDB_TOKEN") or os.getenv("GOCDB_OAUTH_TOKEN")
 GOCDB_TIMEOUT = float(os.getenv("GOCDB_TIMEOUT", "20"))
 
-CERT_BASE = "/etc/gocdb-cert"
+CONTAINER_CERT_BASE = "/etc/gocdb-cert"
+CERT_BASE = os.envir("GOCDB_CERT", CONTAINER_CERT_BASE)
+if Path(CONTAINER_CERT_BASE).exists():
+    CERT_BASE = CONTAINER_CERT_BASE
+else:
+    CERT_BASE = ".cert"
+
 GOCDB_CERT = os.getenv("GOCDB_CERT", f"{CERT_BASE}/GDIGIT_Cert.pem")
 GOCDB_KEY = os.getenv("GOCDB_KEY", f"{CERT_BASE}/gd_gocdb_private.pem")
 GOCDB_CA = os.getenv("GOCDB_CA")

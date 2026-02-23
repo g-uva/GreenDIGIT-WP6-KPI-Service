@@ -42,17 +42,17 @@ This service expects a sites catalogue with coordinates (and optional PUE), typi
      python fetch_goc_db.py --format json --output sites_raw.json
      ```
 
-2. **gocdb_postprocess** → enriches the raw list with realistic coordinates and a static PUE (e.g., 1.4) to produce `sites_enriched.json`.
+2. **gocdb_postprocess** → enriches the raw list with realistic coordinates and a static PUE (1.7). It uses per-site fallbacks, then country centroids from `output/country_latlng.json`, so every site always ends up with coordinates. Produces `output/sites_latlngpue.json`.
    - Example:
      ```bash
-     python gocdb_postprocess.py sites_raw.json data/sites_enriched.json
+     python gocdb_postprocess.py sites_raw.json output/sites_latlngpue.json
      ```
 
 The resulting file shape (used by this CI service via `SITES_JSON`):
 ```json
 [
-  {"site_name":"CERN-PROD","latitude":46.2331,"longitude":6.0559,"pue":1.4},
-  {"site_name":"RAL-LCG2","latitude":51.5714,"longitude":-1.3080,"pue":1.4}
+  {"site_name":"CERN-PROD","latitude":46.2331,"longitude":6.0559,"pue":1.7},
+  {"site_name":"RAL-LCG2","latitude":51.5714,"longitude":-1.3080,"pue":1.7}
 ]
 ```
 
@@ -63,10 +63,11 @@ The resulting file shape (used by this CI service via `SITES_JSON`):
 - Cache shape:
   ```json
   {
-    "CERN-PROD": {"lat":46.2331,"lon":6.0559,"pue":1.4,"country":null,"roc":null}
+    "CERN-PROD": {"lat":46.2331,"lon":6.0559,"pue":1.7,"country":null,"roc":null}
   }
   ```
 - Lookups read from the cache first; if a requested site is missing, the source file is reloaded and the cache is refreshed.
+- After generating the enriched catalogue, copy `output/sites_latlngpue.json` to the desired server instance (or mount it at the path expected by `SITES_JSON`).
 
 ## Quick usage
 
@@ -79,13 +80,13 @@ The resulting file shape (used by this CI service via `SITES_JSON`):
   "lon": 5.0,
   "start": "2025-09-04T12:00:00Z",
   "end": "2025-09-04T15:00:00Z",
-  "pue": 1.4
+  "pue": 1.7
 }
 ```
 
 **Curl**
 ```bash
-curl -s -X POST http://localhost:8111/ci   -H "Authorization: Bearer $TOKEN"   -H "Content-Type: application/json"   -d '{"lat":52.0,"lon":5.0,"start":"2025-09-04T12:00:00Z","end":"2025-09-04T15:00:00Z","pue":1.4}'
+curl -s -X POST http://localhost:8111/ci   -H "Authorization: Bearer $TOKEN"   -H "Content-Type: application/json"   -d '{"lat":52.0,"lon":5.0,"start":"2025-09-04T12:00:00Z","end":"2025-09-04T15:00:00Z","pue":1.7}'
 ```
 
 ### `/pue` — resolve site location and PUE by site name
