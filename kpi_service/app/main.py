@@ -3,9 +3,12 @@ import asyncio
 import json
 import os
 import sys
+import threading
+import tempfile
 import requests
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from fastapi import Body, Depends, FastAPI, HTTPException, Request, APIRouter
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, RedirectResponse
@@ -13,6 +16,12 @@ from pydantic import AliasChoices, BaseModel, Field, ConfigDict
 from typing import Any, Dict, Optional
 from pymongo import MongoClient
 from pathlib import Path
+
+from bidding_zone_resolver import (
+    BiddingZoneNotFoundError,
+    BiddingZoneResolver,
+    BiddingZoneResolverError,
+)
 
 # Volume Version
 
@@ -41,7 +50,7 @@ def redirect_to_docs():
 
 # --- Configuration & Environment ---
 HOST_SERVER = "https://greendigit-cim.sztaki.hu"
-WATTNET_BASE = os.getenv("WATTNET_BASE") or os.getenv("WATTPRINT_BASE", "httpsm://api.wattnet.eu")
+WATTNET_BASE = os.getenv("WATTNET_BASE") or os.getenv("WATTPRINT_BASE", "https://api.wattnet.eu")
 WATTNET_TOKEN = os.getenv("WATTNET_TOKEN") or os.getenv("WATTPRINT_TOKEN")
 AUTH_VERIFY_URL = os.getenv("AUTH_VERIFY_URL", f"{HOST_SERVER}/gd-cim-api/v1/verify-token")
 
@@ -54,6 +63,12 @@ PUE_DEFAULT = os.getenv("PUE_DEFAULT", "1.7")
 CI_API_BASE = os.getenv("CI_API_BASE", f"{HOST_SERVER}/gd-kpi-api/v1")
 
 PUE_REFRESH_HOURS = os.getenv("PUE_REFRESH_HOURS", "3")
+CI_CACHE_TTL_S = int(os.getenv("CI_CACHE_TTL_S", "300"))
+BZ_GEOJSON_DIR = os.getenv("BZ_GEOJSON_DIR")
+CI_CACHE_FILE = os.getenv(
+    "CI_CACHE_FILE",
+    os.path.join(os.path.dirname(__file__), "ci_cache.json"),
+)
 
 SITES_PATH = os.environ.get("SITES_JSON", "/data/sites_latlngpue.json")
 SITES_CACHE_PATH = os.environ.get(
@@ -71,7 +86,7 @@ GOCDB_TOKEN = os.getenv("GOCDB_TOKEN") or os.getenv("GOCDB_OAUTH_TOKEN")
 GOCDB_TIMEOUT = float(os.getenv("GOCDB_TIMEOUT", "20"))
 
 CONTAINER_CERT_BASE = "/etc/gocdb-cert"
-CERT_BASE = os.envir("GOCDB_CERT", CONTAINER_CERT_BASE)
+CERT_BASE = os.environ.get("GOCDB_CERT", CONTAINER_CERT_BASE)
 if Path(CONTAINER_CERT_BASE).exists():
     CERT_BASE = CONTAINER_CERT_BASE
 else:
@@ -99,6 +114,11 @@ if CA_PATH:
     goc_sess.verify = CA_PATH
 
 PUE_FALLBACK = 1.7
+
+_BZ_RESOLVER: Optional[BiddingZoneResolver] = None
+_BZ_LOCK = threading.Lock()
+_CI_BY_BZ_CACHE: Dict[str, Dict[str, Any]] = {}
+_CI_CACHE_LOCK = threading.Lock()
 
 # --- Helper Functions ---
 
@@ -413,6 +433,8 @@ class CIRequest(BaseModel):
 class CIResponse(BaseModel):
     source: str
     zone: Optional[str] = None
+    bz_eic: Optional[str] = None
+    freshness_s: Optional[int] = None
     datetime: Optional[str] = None
     ci_gco2_per_kwh: float
     pue: float
@@ -452,6 +474,16 @@ class MetricsEnvelope(BaseModel):
     pue: Optional[float] = None
     energy_wh: Optional[float] = None
     wattnet_params: Optional[Dict[str, Any]] = None
+
+
+class ResolveBZRequest(BaseModel):
+    lat: float
+    lon: float
+
+
+class ResolveBZResponse(BaseModel):
+    zone: str
+    bz_eic: str
 
 # --- Sites Loading Logic (With Fix) ---
 
@@ -562,6 +594,7 @@ async def _sites_refresh_loop(interval_seconds: float) -> None:
 
 @app.on_event("startup")
 async def _start_sites_refresh() -> None:
+    _load_ci_cache_from_disk()
     interval = _refresh_interval_seconds()
     if interval is None:
         return
@@ -581,6 +614,157 @@ async def _stop_sites_refresh() -> None:
         await task
     except asyncio.CancelledError:
         pass
+
+
+def _default_bz_geojson_dir() -> str:
+    base = os.path.dirname(__file__)
+    candidates = [
+        os.path.join(base, "..", "entsoe", "geo", "geojson"),
+        os.path.join(base, "..", "entose", "geo", "geojson"),
+        "/data/entsoe/geo/geojson",
+    ]
+    for path in candidates:
+        if os.path.isdir(path):
+            return os.path.abspath(path)
+    return os.path.abspath(candidates[0])
+
+
+def _load_ci_cache_from_disk() -> None:
+    global _CI_BY_BZ_CACHE
+    path = CI_CACHE_FILE
+    try:
+        if not os.path.exists(path):
+            print(f"[ci-cache] No cache file at {path}; starting empty.", flush=True)
+            return
+        with open(path, "r", encoding="utf-8") as f:
+            text = f.read()
+        if not text.strip():
+            print(f"[ci-cache] Cache file {path} is empty; starting empty.", flush=True)
+            return
+        raw = json.loads(text)
+        entries = raw.get("entries") if isinstance(raw, dict) else None
+        if not isinstance(entries, dict):
+            print(f"[ci-cache] Invalid cache format in {path}; starting empty.", flush=True)
+            return
+
+        cleaned: Dict[str, Dict[str, Any]] = {}
+        for key, item in entries.items():
+            if not isinstance(key, str) or not isinstance(item, dict):
+                continue
+            payload = item.get("payload")
+            if not isinstance(payload, dict):
+                continue
+            cleaned[key] = {
+                "payload": payload,
+                "fetched_at": int(item.get("fetched_at", 0)),
+            }
+        with _CI_CACHE_LOCK:
+            _CI_BY_BZ_CACHE = cleaned
+        print(f"[ci-cache] Loaded {len(cleaned)} entries from {path}", flush=True)
+    except Exception as exc:
+        print(f"[ci-cache] Failed to load {path}: {exc}", flush=True)
+
+
+def _persist_ci_cache_to_disk() -> None:
+    path = CI_CACHE_FILE
+    try:
+        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+        with _CI_CACHE_LOCK:
+            payload = {
+                "saved_at": to_iso_z(datetime.now(timezone.utc)),
+                "entries": _CI_BY_BZ_CACHE,
+            }
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            delete=False,
+            dir=os.path.dirname(path) or ".",
+        ) as tf:
+            json.dump(payload, tf, separators=(",", ":"))
+            tf.flush()
+            os.fsync(tf.fileno())
+            tmp_path = tf.name
+        os.replace(tmp_path, path)
+    except Exception as exc:
+        print(f"[ci-cache] Failed to persist cache to {path}: {exc}", flush=True)
+
+
+def _best_cached_for_coords(lat: float, lon: float) -> Optional[Dict[str, Any]]:
+    """Return newest cached entry for exact coordinate pair (6dp), regardless of window/params."""
+    prefix = f"{lat:.6f}|{lon:.6f}|"
+    best: Optional[Dict[str, Any]] = None
+    best_ts = -1
+    with _CI_CACHE_LOCK:
+        items = list(_CI_BY_BZ_CACHE.items())
+    for key, item in items:
+        if not isinstance(key, str) or not key.startswith(prefix):
+            continue
+        if not isinstance(item, dict) or not isinstance(item.get("payload"), dict):
+            continue
+        ts = int(item.get("fetched_at", 0))
+        if ts > best_ts:
+            best_ts = ts
+            best = item
+    return best
+
+
+def _best_cached_by_prefix(prefix: str) -> Optional[Dict[str, Any]]:
+    best: Optional[Dict[str, Any]] = None
+    best_ts = -1
+    with _CI_CACHE_LOCK:
+        items = list(_CI_BY_BZ_CACHE.items())
+    for key, item in items:
+        if not isinstance(key, str) or not key.startswith(prefix):
+            continue
+        if not isinstance(item, dict) or not isinstance(item.get("payload"), dict):
+            continue
+        ts = int(item.get("fetched_at", 0))
+        if ts > best_ts:
+            best_ts = ts
+            best = item
+    return best
+
+
+def _cache_region_token(lat: float, lon: float) -> tuple[str, Optional[str], Optional[str]]:
+    """
+    Build cache token; prefer region mapping so different coordinates in same
+    bidding zone share cache. If mapping is unavailable, fall back to coords.
+    """
+    try:
+        zone_name, bz_eic = _resolve_bz_or_422(lat, lon)
+        return f"region:{bz_eic}", zone_name, bz_eic
+    except HTTPException:
+        return f"coord:{lat:.6f},{lon:.6f}", None, None
+
+
+def _get_bz_resolver() -> BiddingZoneResolver:
+    global _BZ_RESOLVER
+    if _BZ_RESOLVER is not None:
+        return _BZ_RESOLVER
+    with _BZ_LOCK:
+        if _BZ_RESOLVER is None:
+            geo_dir = BZ_GEOJSON_DIR or _default_bz_geojson_dir()
+            _BZ_RESOLVER = BiddingZoneResolver(Path(geo_dir))
+            print(f"[bz] Loaded bidding zone resolver from {geo_dir}", flush=True)
+    return _BZ_RESOLVER
+
+
+def _resolve_bz_or_422(lat: float, lon: float) -> tuple[str, str]:
+    try:
+        resolver = _get_bz_resolver()
+        return resolver.resolve(lat, lon)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except BiddingZoneNotFoundError:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "COORDS_OUTSIDE_SUPPORTED_ZONES",
+                "message": f"No ENTSO-E bidding zone for lat={lat}, lon={lon}",
+            },
+        )
+    except BiddingZoneResolverError as exc:
+        raise HTTPException(status_code=503, detail=f"Bidding-zone resolver unavailable: {exc}") from exc
 
 @app.exception_handler(RequestValidationError)
 async def debug_validation_exception_handler(request: Request, exc: RequestValidationError):
@@ -686,6 +870,12 @@ def post_ci(payload: CIRequest, request: Request):
     return _compute_ci_response(payload, merged_params or None)
 
 
+@router.post("/resolve-bz", response_model=ResolveBZResponse)
+def post_resolve_bz(payload: ResolveBZRequest):
+    zone_name, bz_eic = _resolve_bz_or_422(payload.lat, payload.lon)
+    return ResolveBZResponse(zone=zone_name, bz_eic=bz_eic)
+
+
 @router.get("/cfp", response_model=CFPResponse)
 def get_cfp(request: Request, q: CFPQuery = Depends()):
     """
@@ -752,17 +942,80 @@ def _compute_ci_response(req: CIRequest, wattnet_params: Optional[Dict[str, Any]
     start, end = _resolve_ci_window(req)
     pue_value = _resolve_pue(req.pue)
     print(f"[ci] window {start} -> {end}", flush=True)
-    
-    try:
-        payload = wattnet_fetch(req.lat, req.lon, start, end, extra_params=merged_params or None)
-    except Exception as e:
-        # Log richer context to aid debugging (status + body when available)
-        resp = getattr(e, "response", None)
-        if resp is not None:
-            body_preview = resp.text[:500] if resp.text else ""
-            print(f"[wattnet] error status={resp.status_code} body={body_preview}", flush=True)
-        print(f"[wattnet] exception: {repr(e)}", flush=True)
-        raise HTTPException(status_code=502, detail=f"WattNet error: {e}")
+    region_token, mapped_zone_name, mapped_bz_eic = _cache_region_token(req.lat, req.lon)
+
+    # Region-based key: same zone + window/params share cache, even with different coords.
+    cache_key = "|".join(
+        [
+            region_token,
+            to_iso_z(start),
+            to_iso_z(end),
+            json.dumps(merged_params or {}, sort_keys=True, default=str),
+        ]
+    )
+    now_ts = int(datetime.now(timezone.utc).timestamp())
+    with _CI_CACHE_LOCK:
+        cache_item = _CI_BY_BZ_CACHE.get(cache_key)
+    payload: Dict[str, Any]
+    source = "online"
+    freshness_s = 0
+    zone_name: Optional[str] = mapped_zone_name
+    bz_eic: Optional[str] = mapped_bz_eic
+
+    if cache_item:
+        fetched_at = int(cache_item.get("fetched_at", 0))
+        age = max(0, now_ts - fetched_at)
+        if age <= CI_CACHE_TTL_S:
+            payload = cache_item["payload"]
+            source = "local"
+            freshness_s = age
+
+    if source == "online":
+        try:
+            payload = wattnet_fetch(req.lat, req.lon, start, end, extra_params=merged_params or None)
+            with _CI_CACHE_LOCK:
+                _CI_BY_BZ_CACHE[cache_key] = {"payload": payload, "fetched_at": now_ts}
+            _persist_ci_cache_to_disk()
+            zone_name = payload.get("zone")
+        except Exception as e:
+            # Fallback to cached value (even stale) when online fetch fails.
+            fallback_item = cache_item if (cache_item and isinstance(cache_item.get("payload"), dict)) else None
+            if fallback_item is None:
+                fallback_item = _best_cached_by_prefix(f"{region_token}|")
+            # Legacy fallback for older coordinate-key cache entries.
+            if fallback_item is None:
+                fallback_item = _best_cached_for_coords(req.lat, req.lon)
+            if fallback_item and isinstance(fallback_item.get("payload"), dict):
+                fetched_at = int(fallback_item.get("fetched_at", 0))
+                payload = fallback_item["payload"]
+                source = "local"
+                freshness_s = max(0, now_ts - fetched_at)
+                print(
+                    f"[wattnet] online fetch failed; serving cached payload age={freshness_s}s",
+                    flush=True,
+                )
+            else:
+                # Log richer context to aid debugging (status + body when available)
+                resp = getattr(e, "response", None)
+                if resp is not None:
+                    body_preview = resp.text[:500] if resp.text else ""
+                    print(f"[wattnet] error status={resp.status_code} body={body_preview}", flush=True)
+                print(f"[wattnet] exception: {repr(e)}", flush=True)
+                raise HTTPException(
+                    status_code=502,
+                    detail=(
+                        f"WattNet error: {e}. "
+                        "No local cached CI found for these coordinates/region."
+                    ),
+                )
+
+    # Only in local mode, attempt to enrich with zoneName/bz_eic mapping.
+    if source == "local":
+        # Keep mapped identifiers if available; otherwise use payload hints.
+        zone_name = zone_name or payload.get("zone")
+    else:
+        # Online mode must not depend on mapping availability.
+        zone_name = zone_name or payload.get("zone")
 
     ci, ci_dt = _extract_ci_from_payload(payload)
     eff_ci = ci * pue_value # Effective Carbon Intensity = CI * PUE
@@ -776,8 +1029,10 @@ def _compute_ci_response(req: CIRequest, wattnet_params: Optional[Dict[str, Any]
         cfp_kg = cfp_g / 1000.0
 
     return CIResponse(
-        source="wattnet",
-        zone=payload.get("zone"),
+        source=source,
+        zone=zone_name,
+        bz_eic=bz_eic,
+        freshness_s=freshness_s,
         datetime=ci_dt or payload.get("end") or payload.get("start"),
         ci_gco2_per_kwh=ci,
         pue=pue_value,
