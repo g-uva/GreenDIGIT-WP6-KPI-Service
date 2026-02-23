@@ -6,7 +6,7 @@ import sys
 import requests
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
-from fastapi import Body, FastAPI, HTTPException, Request, APIRouter
+from fastapi import Body, Depends, FastAPI, HTTPException, Request, APIRouter
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import AliasChoices, BaseModel, Field, ConfigDict
@@ -167,6 +167,7 @@ def gocdb_fetch_site(site_name: str) -> Optional[Dict[str, Any]]:
         params["scope"] = GOCDB_SCOPE
     url = _gocdb_endpoint()
     try:
+        print(params)
         r = goc_sess.get(url, params=params, timeout=GOCDB_TIMEOUT)
     except Exception as exc:
         raise RuntimeError(f"GOC DB request failed: {exc}") from exc
@@ -413,6 +414,20 @@ class CIResponse(BaseModel):
     cfp_kg: Optional[float] = None
     valid: bool
 
+class CFPQuery(BaseModel):
+    """Query parameters for GET /cfp (supports multiple aliases used across the pipeline)."""
+    ci_g: float = Field(..., validation_alias=AliasChoices("ci_g", "ci", "ci_gco2_per_kwh"))
+    pue: float = Field(..., validation_alias=AliasChoices("pue", "PUE"))
+    energy_wh: Optional[float] = Field(default=None, validation_alias=AliasChoices("energy_wh", "EnergyWh", "Energy_wh"))
+
+class CFPResponse(BaseModel):
+    ci_gco2_per_kwh: float
+    pue: float
+    effective_ci_gco2_per_kwh: float
+    energy_wh: Optional[float] = None
+    cfp_g: Optional[float] = None
+    cfp_kg: Optional[float] = None
+
 class MetricsEnvelope(BaseModel):
     model_config = ConfigDict(extra="allow")
     site: Optional[str] = None
@@ -579,7 +594,6 @@ async def debug_validation_exception_handler(request: Request, exc: RequestValid
     )
 
 # --- Endpoints ---
-
 @router.post("/pue", response_model=PUEResponse)
 def post_pue(payload: PUERequest):
     return _compute_pue_response(payload)
@@ -663,6 +677,35 @@ def post_ci(payload: CIRequest, request: Request):
     _verify_request_token(raw_auth_header)
 
     return _compute_ci_response(payload, merged_params or None)
+
+
+@router.get("/cfp", response_model=CFPResponse)
+def get_cfp(request: Request, q: CFPQuery = Depends()):
+    """
+    Compute CFP from already-known CI and PUE.
+
+    Inputs:
+      - ci_g (gCO2/kWh)
+      - pue (dimensionless)
+      - energy_wh (optional; when provided, returns absolute CFP in grams/kg)
+    """
+    raw_auth_header = request.headers.get("authorization")
+    _verify_request_token(raw_auth_header)
+    eff_ci = q.ci_g * q.pue
+    cfp_g = None
+    cfp_kg = None
+    if q.energy_wh is not None:
+        energy_kwh = q.energy_wh / 1000.0
+        cfp_g = energy_kwh * eff_ci
+        cfp_kg = cfp_g / 1000.0
+    return CFPResponse(
+        ci_gco2_per_kwh=q.ci_g,
+        pue=q.pue,
+        effective_ci_gco2_per_kwh=eff_ci,
+        energy_wh=q.energy_wh,
+        cfp_g=cfp_g,
+        cfp_kg=cfp_kg,
+    )
 
 def _resolve_ci_window(req: CIRequest) -> tuple[datetime, datetime]:
     if req.start and req.end:
