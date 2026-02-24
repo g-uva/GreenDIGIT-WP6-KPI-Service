@@ -154,9 +154,10 @@ def prefetch_once(geojson_dir: Path, cache_file: Path, aggregate: str = "true") 
     if not token:
         raise RuntimeError("WATTNET_TOKEN/WATTPRINT_TOKEN is required")
 
-    now = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
-    start = now - timedelta(hours=1)
-    end = now + timedelta(hours=2)
+    now = datetime.now(timezone.utc).replace(second=0, microsecond=0)
+    # Prefetch only the latest interval ending "now" (no future window).
+    start = now - timedelta(minutes=5)
+    end = now
     params_json = json.dumps({"aggregate": aggregate}, sort_keys=True)
 
     headers = {"Accept": "application/json", "Authorization": f"Bearer {token}", "aggregate": aggregate}
