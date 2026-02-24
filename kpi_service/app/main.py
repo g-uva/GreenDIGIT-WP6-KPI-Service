@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import errno
 import json
 import os
 import sys
@@ -30,7 +31,8 @@ API_PREFIX = "/v1"
 APP_DESCRIPTION = (
     "Service providing GreenDIGIT KPIs. It retrieves location information from "
     "GOC DB, queries WattNet for carbon intensity, and exposes helper endpoints "
-    "used by the CIM pipeline."
+    "used by the CIM pipeline. The CI endpoint supports online mode (WattNet) and "
+    "local fallback mode backed by a persisted JSON cache."
 )
 
 app = FastAPI(
@@ -420,28 +422,64 @@ class PUEResponse(BaseModel):
     source: str
 
 class CIRequest(BaseModel):
-    lat: float
-    lon: float
-    pue: Optional[float] = Field(default_factory=_default_pue)
-    energy_wh: Optional[float] = None
-    start: Optional[datetime] = Field(default=None, validation_alias=AliasChoices("start", "datetime"))
-    end: Optional[datetime] = None
+    lat: float = Field(..., description="Latitude in WGS84 decimal degrees.", examples=[45.071])
+    lon: float = Field(..., description="Longitude in WGS84 decimal degrees.", examples=[7.652])
+    pue: Optional[float] = Field(
+        default_factory=_default_pue,
+        description="Power Usage Effectiveness. Defaults to service fallback when omitted.",
+        examples=[1.7],
+    )
+    energy_wh: Optional[float] = Field(
+        default=None,
+        description="Optional energy in Wh. When provided, CFP fields are computed.",
+        examples=[12000.0],
+    )
+    start: Optional[datetime] = Field(
+        default=None,
+        validation_alias=AliasChoices("start", "datetime"),
+        description="Start of CI lookup window (UTC ISO8601).",
+        examples=["2024-05-01T10:30:00Z"],
+    )
+    end: Optional[datetime] = Field(
+        default=None,
+        description="End of CI lookup window (UTC ISO8601).",
+        examples=["2024-05-01T13:30:00Z"],
+    )
     time: Optional[datetime] = Field(default=None, validation_alias=AliasChoices("time"), deprecated=True)
     metric_id: Optional[str] = None
-    wattnet_params: Optional[Dict[str, Any]] = None
+    wattnet_params: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Optional pass-through parameters for WattNet request tuning.",
+    )
 
 class CIResponse(BaseModel):
-    source: str
-    zone: Optional[str] = None
-    bz_eic: Optional[str] = None
-    freshness_s: Optional[int] = None
-    datetime: Optional[str] = None
-    ci_gco2_per_kwh: float
-    pue: float
-    effective_ci_gco2_per_kwh: float
-    cfp_g: Optional[float] = None
-    cfp_kg: Optional[float] = None
-    valid: bool
+    source: str = Field(
+        ...,
+        description="`online` when fetched from WattNet, `local` when served from persisted cache.",
+        examples=["online"],
+    )
+    zone: Optional[str] = Field(
+        default=None,
+        description="Bidding zone name (WattNet zone and/or mapped zone).",
+        examples=["IT_NORD"],
+    )
+    bz_eic: Optional[str] = Field(
+        default=None,
+        description="ENTSO-E bidding-zone EIC code, when mapping is available.",
+        examples=["10Y1001A1001A73I"],
+    )
+    freshness_s: Optional[int] = Field(
+        default=None,
+        description="Age in seconds of cached payload when `source=local`; usually 0 for online fetch.",
+        examples=[0],
+    )
+    datetime: Optional[str] = Field(default=None, description="Timestamp associated with CI value.")
+    ci_gco2_per_kwh: float = Field(..., description="Carbon intensity in gCO2/kWh.")
+    pue: float = Field(..., description="Applied PUE value.")
+    effective_ci_gco2_per_kwh: float = Field(..., description="Effective CI = ci_gco2_per_kwh * pue.")
+    cfp_g: Optional[float] = Field(default=None, description="Computed carbon footprint in grams (if energy_wh provided).")
+    cfp_kg: Optional[float] = Field(default=None, description="Computed carbon footprint in kilograms (if energy_wh provided).")
+    valid: bool = Field(..., description="Provider validity flag.")
 
 class CFPQuery(BaseModel):
     """Query parameters for GET /cfp (supports multiple aliases used across the pipeline)."""
@@ -477,13 +515,13 @@ class MetricsEnvelope(BaseModel):
 
 
 class ResolveBZRequest(BaseModel):
-    lat: float
-    lon: float
+    lat: float = Field(..., description="Latitude in WGS84 decimal degrees.", examples=[45.071])
+    lon: float = Field(..., description="Longitude in WGS84 decimal degrees.", examples=[7.652])
 
 
 class ResolveBZResponse(BaseModel):
-    zone: str
-    bz_eic: str
+    zone: str = Field(..., description="Resolved bidding-zone name.", examples=["IT_NORD"])
+    bz_eic: str = Field(..., description="Resolved ENTSO-E bidding-zone EIC code.", examples=["10Y1001A1001A73I"])
 
 # --- Sites Loading Logic (With Fix) ---
 
@@ -667,6 +705,7 @@ def _load_ci_cache_from_disk() -> None:
 
 def _persist_ci_cache_to_disk() -> None:
     path = CI_CACHE_FILE
+    tmp_path: Optional[str] = None
     try:
         os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
         with _CI_CACHE_LOCK:
@@ -680,12 +719,22 @@ def _persist_ci_cache_to_disk() -> None:
             delete=False,
             dir=os.path.dirname(path) or ".",
         ) as tf:
+            tmp_path = tf.name
             json.dump(payload, tf, separators=(",", ":"))
             tf.flush()
-            os.fsync(tf.fileno())
-            tmp_path = tf.name
+            try:
+                os.fsync(tf.fileno())
+            except OSError as exc:
+                if exc.errno not in (errno.EINVAL, errno.ENOTSUP, errno.EROFS):
+                    raise
         os.replace(tmp_path, path)
+        tmp_path = None
     except Exception as exc:
+        if tmp_path and os.path.exists(tmp_path):
+            try:
+                os.unlink(tmp_path)
+            except Exception:
+                pass
         print(f"[ci-cache] Failed to persist cache to {path}: {exc}", flush=True)
 
 
@@ -830,7 +879,24 @@ def _compute_pue_response(req: PUERequest) -> PUEResponse:
         source="+".join(sources)
     )
 
-@router.post("/ci", response_model=CIResponse)
+@router.post(
+    "/ci",
+    response_model=CIResponse,
+    tags=["CI"],
+    summary="Resolve carbon intensity with online/local fallback",
+    description=(
+        "Returns CI and derived values for a given location/time window. "
+        "The service first attempts an online WattNet fetch; if that fails, it serves "
+        "the newest matching local cached payload (persisted JSON cache). "
+        "Cache reuse is region-aware when bidding-zone mapping is available."
+    ),
+    responses={
+        200: {"description": "CI resolved from online provider or local cache."},
+        401: {"description": "Missing/invalid Authorization token."},
+        422: {"description": "Invalid request fields or coordinates."},
+        502: {"description": "Online provider failed and no usable local cache was found."},
+    },
+)
 def post_ci(payload: CIRequest, request: Request):
     client_ip = _client_ip(request)
     print(f"[ci] request from {client_ip}", flush=True)
@@ -870,7 +936,21 @@ def post_ci(payload: CIRequest, request: Request):
     return _compute_ci_response(payload, merged_params or None)
 
 
-@router.post("/resolve-bz", response_model=ResolveBZResponse)
+@router.post(
+    "/resolve-bz",
+    response_model=ResolveBZResponse,
+    tags=["CI"],
+    summary="Resolve ENTSO-E bidding zone from coordinates",
+    description=(
+        "Resolves a WGS84 coordinate pair to ENTSO-E bidding-zone name and EIC code "
+        "using local GeoJSON geometries plus zoneName->EIC mapping."
+    ),
+    responses={
+        200: {"description": "Zone successfully resolved."},
+        422: {"description": "Coordinates outside supported zones or invalid coordinates."},
+        503: {"description": "Resolver unavailable (missing geometry pack/mapping)."},
+    },
+)
 def post_resolve_bz(payload: ResolveBZRequest):
     zone_name, bz_eic = _resolve_bz_or_422(payload.lat, payload.lon)
     return ResolveBZResponse(zone=zone_name, bz_eic=bz_eic)

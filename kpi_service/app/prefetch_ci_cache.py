@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import errno
 import importlib.util
 import json
 import os
@@ -124,12 +125,25 @@ def _save_cache(path: Path, entries: Dict[str, Dict[str, Any]]) -> None:
         "saved_at": to_iso_z(datetime.now(timezone.utc)),
         "entries": entries,
     }
-    with tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False, dir=str(path.parent)) as tf:
-        json.dump(payload, tf, separators=(",", ":"))
-        tf.flush()
-        os.fsync(tf.fileno())
-        tmp = tf.name
-    os.replace(tmp, path)
+    tmp: Optional[str] = None
+    try:
+        with tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False, dir=str(path.parent)) as tf:
+            tmp = tf.name
+            json.dump(payload, tf, separators=(",", ":"))
+            tf.flush()
+            try:
+                os.fsync(tf.fileno())
+            except OSError as exc:
+                if exc.errno not in (errno.EINVAL, errno.ENOTSUP, errno.EROFS):
+                    raise
+        os.replace(tmp, path)
+        tmp = None
+    finally:
+        if tmp and os.path.exists(tmp):
+            try:
+                os.unlink(tmp)
+            except Exception:
+                pass
     os.chmod(path, 0o644)
 
 
