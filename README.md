@@ -15,6 +15,9 @@ FastAPI microservice that retrieves Location (lat/lon) from [GOC DB](https://goc
 
 Related repositories:
 - [GreenDIGIT-project](https://github.com/GreenDIGIT-project)
+- [GreenDIGIT-CIM](https://github.com/g-uva/GreenDIGIT-CIM)
+- [GreenDIGIT-AuthServer](https://github.com/g-uva/GreenDIGIT-AuthServer)
+- [GreenDIGIT-SQLAdapter](https://github.com/g-uva/GreenDIGIT-SQLAdapter)
 
 ## How the calculation works
 
@@ -24,12 +27,6 @@ $$
 
 $$
 \mathrm{CFP}\;[\mathrm{gCO_2e}] = \mathrm{CI}_{\mathrm{eff}}\;[\mathrm{gCO_2e/kWh}] \times E\;[\mathrm{kWh}]
-$$
-
-Also in kg: 
-
-$$ 
-\mathrm{CFP}_{kg} = \mathrm{CFP}/1000 
 $$
 
 ## Folder structure
