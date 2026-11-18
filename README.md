@@ -15,7 +15,7 @@ FastAPI microservice that retrieves Location (lat/lon) from [GOC DB](https://goc
 
 Related repositories:
 - [GreenDIGIT-project](https://github.com/GreenDIGIT-project)
-- [GreenDIGIT-CIM](https://github.com/g-uva/GreenDIGIT-CIM)
+- [GreenDIGIT-CIM](https://github.com/atahir2/GreenDIGIT-CIM)
 - [GreenDIGIT-AuthServer](https://github.com/g-uva/GreenDIGIT-AuthServer)
 - [GreenDIGIT-SQLAdapter](https://github.com/g-uva/GreenDIGIT-SQLAdapter)
 
